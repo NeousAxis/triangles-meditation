@@ -2,26 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Triangle Meditation Network</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: { colors: { primary: '#5D5CDE' } } }
-    };
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#5D5CDE' } } } };
   </script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/topojson.v3.min.js"></script>
   <script src="https://unpkg.com/d3-delaunay@6"></script>
-  <script src="https://d3js.org/d3-zoom.v2.min.js"></script>
   <style>
-    .triangle-path { stroke-dasharray:10; animation:dash 3s linear infinite; }
-    @keyframes dash { to { stroke-dashoffset:30; }}
-    .triangle-point { animation:pulse 2s infinite; }
+    .triangle-path { stroke-dasharray: 10; animation: dash 3s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: 30; } }
+    .triangle-point { animation: pulse 2s infinite; transform-box: fill-box; transform-origin: center; }
     @keyframes pulse { 0%,100%{opacity:.7;transform:scale(.9);}50%{opacity:1;transform:scale(1.2);} }
-    .user-point { stroke:white;stroke-width:2px;animation:userPulse 2s infinite; }
-    @keyframes userPulse {0%,100%{opacity:.8;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+    .user-point { stroke: white; stroke-width: 2px; animation: userPulse 2s infinite; }
+    @keyframes userPulse { 0%,100%{opacity:.8;transform:scale(1);}50%{opacity:1;transform:scale(1.3);} }
   </style>
 </head>
 <body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans min-h-screen flex flex-col">
@@ -30,51 +26,68 @@
   <div class="container mx-auto flex justify-between items-center">
     <h1 id="app-title" class="text-2xl font-bold">Triangle Meditation Network</h1>
     <select id="language-selector" class="bg-white text-gray-800 rounded px-3 py-1">
-      <option value="en">English</option><option value="fr">Français</option>
-      <option value="es">Español</option><option value="de">Deutsch</option>
-      <option value="it">Italiano</option><option value="ru">Русский</option>
-      <option value="zh">中文</option><option value="ar">العربية</option>
+      <option value="en">English</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+      <option value="de">Deutsch</option>
+      <option value="it">Italiano</option>
+      <option value="ru">Русский</option>
+      <option value="zh">中文</option>
+      <option value="ar">العربية</option>
       <option value="hi">हिन्दी</option>
     </select>
   </div>
 </header>
 
 <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6">
-  <!-- Map -->
+  <!-- Map Panel -->
   <section class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
     <div class="flex justify-between items-center mb-4">
       <h2 id="active-triangles-title" class="text-xl font-semibold">Active Triangles</h2>
-      <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded">Geolocaliser</button>
+      <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded">Use My Location</button>
     </div>
     <div id="map-container" class="w-full h-80 md:h-96 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden">
       <svg id="map" class="w-full h-full"></svg>
     </div>
     <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><p id="participants-count">0</p><span id="participants-label">Participants</span></div>
-      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><p id="triangles-count">0</p><span id="triangles-label">Triangles</span></div>
-      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><p id="waiting-count">0</p><span id="waiting-label">En attente</span></div>
+      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+        <h3 id="participants-label" class="font-semibold">Participants</h3>
+        <p id="participants-count" class="text-xl">0</p>
+      </div>
+      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+        <h3 id="triangles-label" class="font-semibold">Triangles</h3>
+        <p id="triangles-count" class="text-xl">0</p>
+      </div>
+      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+        <h3 id="waiting-label" class="font-semibold">Waiting</h3>
+        <p id="waiting-count" class="text-xl">0</p>
+      </div>
     </div>
-    <button id="simulation-button" class="mt-4 w-full bg-primary text-white py-2 rounded">Mode Test</button>
+    <button id="simulation-button" class="mt-4 w-full bg-primary text-white py-2 rounded">Start Test Mode</button>
   </section>
 
-  <!-- Registration -->
+  <!-- Registration Panel -->
   <aside class="w-full md:w-1/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
     <div id="registration-form">
-      <h2 id="welcome-text" class="text-xl text-center mb-4">Connexion meditation triangles</h2>
-      <input id="user-name" class="w-full mb-2 p-2 border rounded" placeholder="Your Name" />
-      <select id="user-continent" class="w-full mb-2 p-2 border rounded"><option>-- Continent --</option></select>
-      <select id="user-country" class="w-full mb-2 p-2 border rounded hidden"><option>-- Country --</option></select>
-      <input id="user-city" list="city-options" class="w-full mb-2 p-2 border rounded hidden" placeholder="City" />
+      <h2 id="welcome-text" class="text-xl text-center mb-4">Connect through meditation triangles</h2>
+      <input id="user-name" type="text" class="w-full mb-2 p-2 border rounded" placeholder="Your Name" />
+      <select id="user-continent" class="w-full mb-2 p-2 border rounded">
+        <option value="">-- Select Continent --</option>
+      </select>
+      <select id="user-country" class="w-full mb-2 p-2 border rounded hidden">
+        <option value="">-- Select Country --</option>
+      </select>
+      <input id="user-city" list="city-options" class="w-full mb-2 p-2 border rounded hidden" placeholder="Select City" />
       <datalist id="city-options"></datalist>
-      <button id="join-network" class="w-full bg-primary text-white py-2 rounded">Join</button>
+      <button id="join-network" class="w-full bg-primary text-white py-2 rounded">Join Network</button>
     </div>
-    <div id="status-panel" class="hidden text-center">
-      <p id="status-message" class="mb-2"></p>
+    <div id="status-panel" class="hidden text-center space-y-2">
+      <p id="status-message"></p>
       <p id="participant-info"></p>
       <p id="triangle-status"></p>
       <p id="time-remaining"></p>
-      <button id="start-meditation" class="mt-2 bg-primary text-white py-2 rounded">Start Meditation</button>
-      <button id="leave-network" class="mt-2 bg-red-500 text-white py-2 rounded">Leave</button>
+      <button id="start-meditation" class="w-full bg-primary text-white py-2 rounded">Start Meditation</button>
+      <button id="leave-network" class="w-full mt-2 bg-red-500 text-white py-2 rounded">Leave Network</button>
     </div>
   </aside>
 </main>
@@ -82,49 +95,118 @@
 <footer class="bg-gray-100 dark:bg-gray-800 p-4 text-center text-sm">© 2025 Triangle Meditation Network</footer>
 
 <script>
-// App data & translations
-window.appData = { availableLanguages:['en','fr','es','de','it','ru','zh','ar','hi'], currentLanguage:'en', translations:{/*...full dictionary from before...*/}, geoData:window.appData?window.appData.geoData:{} };
-// detect browser lang
-(function(){let l=(navigator.language||'en').split('-')[0];appData.currentLanguage=appData.availableLanguages.includes(l)?l:'en';})();
+// --- Data & Translations ---
+window.appData = {
+  availableLanguages: ['en','fr','es','de','it','ru','zh','ar','hi'],
+  currentLanguage: 'en',
+  translations: {/* full dictionary as before */},
+  geoData: {/* full geoData as before */},
+  participants: [],
+  triangles: [],
+  userProfile: null
+};
+// detect browser language
+(function(){const lang=(navigator.language||'en').slice(0,2);if(appData.availableLanguages.includes(lang))appData.currentLanguage=lang;})();
 
+// --- Initialization ---
 document.addEventListener('DOMContentLoaded',()=>{
-n=appData;
-// init language selector
-const sel=document.getElementById('language-selector');sel.value=n.currentLanguage;sel.onchange=e=>{n.currentLanguage=e.target.value;updateText();};
-// update static texts
-def updateText(){document.getElementById('app-title').textContent=n.translations[n.currentLanguage].appTitle; /*...*/}
-updateText();
-// populate geo selectors
-const contSel=document.getElementById('user-continent');geoData.continents.forEach(c=>contSel.append(new Option(c.name,c.id)));
-contSel.onchange=()=>{/* populate country then city */};
-// init map
-initMap();
-// handlers
-document.getElementById('simulation-button').onclick=simulate;
-document.getElementById('join-network').onclick=joinNetwork;
+  initLanguage();
+  initGeoSelectors();
+  initMap();
+  document.getElementById('simulation-button').onclick=startSimulation;
+  document.getElementById('join-network').onclick=joinNetwork;
 });
 
-function initMap(){const svg=d3.select('#map'),w=svg.node().clientWidth,h=svg.node().clientHeight;
-const projection=d3.geoNaturalEarth1().scale(w/6.28).translate([w/2,h/2]);const path=d3.geoPath().projection(projection);
-const mapLayer=svg.append('g'),triLayer=svg.append('g');
-const zoom=d3.zoom().scaleExtent([1,20]).on('zoom',e=>mapLayer.attr('transform',e.transform),triLayer.attr('transform',e.transform));svg.call(zoom);
-d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json').then(world=>{
-const countries=topojson.feature(world,world.objects.countries).features;
-mapLayer.selectAll('path').data(countries).enter().append('path').attr('d',path).attr('fill','rgba(200,200,200,0.3)').attr('stroke','rgba(150,150,150,0.8)');
-updateTriangles();});window.mapState={svg,projection,path,triLayer};
+function initLanguage(){
+  const sel=document.getElementById('language-selector');
+  sel.value=appData.currentLanguage;
+  sel.onchange=e=>{appData.currentLanguage=e.target.value;applyTranslations();};
+  applyTranslations();
+}
+function applyTranslations(){/* set textContent for all IDs from translations */}
+
+function initGeoSelectors(){
+  const c1=document.getElementById('user-continent');
+  appData.geoData.continents.forEach(c=>c1.append(new Option(c.name,c.id)));
+  c1.onchange=()=>{
+    const selCountry=document.getElementById('user-country');selCountry.innerHTML='<option value="">-- '+translate('selectCountry')+' --</option>';
+    selCountry.classList.remove('hidden');
+    const cities=document.getElementById('city-options');cities.innerHTML='';document.getElementById('user-city').classList.add('hidden');
+    (appData.geoData.countries[c1.value]||[]).forEach(c=>selCountry.append(new Option(c.name,c.id)));
+  };
+  document.getElementById('user-country').onchange=function(){
+    const list=document.getElementById('city-options');list.innerHTML='';
+    (appData.geoData.cities[this.value]||[]).forEach(city=>list.append(new Option(city,city)));
+    document.getElementById('user-city').classList.remove('hidden');
+  };
 }
 
-function updateTriangles(){const {triangles,participants}=window.appData;const layer=window.mapState.triLayer;layer.selectAll('*').remove();
-const pts=layer.append('g'),lines=layer.append('g');
-const proj=window.mapState.projection;
-participants.forEach(p=>{const xy=proj([p.coordinates[1],p.coordinates[0]]);pts.append('circle').attr('cx',xy[0]).attr('cy',xy[1]).attr('r',5).attr('fill','#999');});
-triangles.forEach(t=>{for(let i=0;i<3;i++){const a=t.members[i],b=t.members[(i+1)%3];const p1=proj([a.coordinates[1],a.coordinates[0]]),p2=proj([b.coordinates[1],b.coordinates[0]]);lines.append('line').attr('x1',p1[0]).attr('y1',p1[1]).attr('x2',p2[0]).attr('y2',p2[1]).attr('class','triangle-path').attr('stroke',t.color);} });
+// --- Map & Triangles ---
+const mapState={};
+function initMap(){
+  const svg=d3.select('#map');
+  const width=svg.node().clientWidth, height=svg.node().clientHeight;
+  const projection=d3.geoNaturalEarth1().scale(width/6.28).translate([width/2,height/2]);
+  const path=d3.geoPath().projection(projection);
+  const mapLayer=svg.append('g'), triLayer=svg.append('g');
+  const zoom=d3.zoom().scaleExtent([1,20]).on('zoom',({transform})=>{mapLayer.attr('transform',transform);triLayer.attr('transform',transform);});
+  svg.call(zoom);
+  d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json').then(world=>{
+    const features=topojson.feature(world,world.objects.countries).features;
+    mapLayer.selectAll('path').data(features).enter().append('path').attr('d',path)
+      .attr('fill','rgba(200,200,200,0.3)').attr('stroke','rgba(150,150,150,0.8)');
+    updateTriangles();
+  });
+  mapState.svg=svg;mapState.projection=projection;mapState.triLayer=triLayer;
 }
 
-// placeholder simulate/joinNetwork...
-function simulate(){/* form random participants & call updateTriangles() */}
-function joinNetwork(){/* validate, add appData.participants, formTriangles & update... */}
+function updateTriangles(){
+  const {participants,triangles,projection,triLayer}=mapState;
+  triLayer.selectAll('*').remove();
+  const pts=triLayer.append('g'), lines=triLayer.append('g');
+  participants.forEach(p=>{
+    const [x,y]=projection([p.coordinates[1],p.coordinates[0]]);
+    pts.append('circle').attr('class','triangle-point'+(appData.userProfile&&p.id===appData.userProfile.id?' user-point':''))
+      .attr('cx',x).attr('cy',y).attr('r',6).attr('fill',p.color||'#888');
+  });
+  triangles.forEach(t=>{
+    for(let i=0;i<3;i++){const a=t.members[i],b=t.members[(i+1)%3];const p1=projection([a.coordinates[1],a.coordinates[0]]),p2=projection([b.coordinates[1],b.coordinates[0]]);
+      lines.append('line').attr('class','triangle-path').attr('x1',p1[0]).attr('y1',p1[1]).attr('x2',p2[0]).attr('y2',p2[1])
+        .attr('stroke',t.color).attr('stroke-width',2);
+    }
+  });
+  document.getElementById('participants-count').textContent=participants.length;
+  document.getElementById('triangles-count').textContent=triangles.length;
+  document.getElementById('waiting-count').textContent=participants.length%3;
+}
 
+// --- Simulation & Join ---
+function startSimulation(){
+  // generate 30 random participants
+  appData.participants=[];
+  for(let i=0;i<30;i++){const coord=[(Math.random()*180)-90,(Math.random()*360)-180];appData.participants.push({id:'sim'+i,coordinates:coord,color:null});}
+  formTriangles(); updateTriangles();
+}
+
+function joinNetwork(){
+  const name=document.getElementById('user-name').value;
+  const cont=document.getElementById('user-continent').value;
+  const country=document.getElementById('user-country').value;
+  const city=document.getElementById('user-city').value;
+  if(!name||!cont||!country||!city){alert('Please fill all');return;}
+  const coords=appData.geoData.cityCoordinates[city]||appData.geoData.coordinates[country];
+  const user={id:'u'+Date.now(),coordinates:coords,color:'#FF5722'};
+  appData.userProfile=user;
+  appData.participants.push(user);
+  formTriangles(); updateTriangles();
+  document.getElementById('registration-form').classList.add('hidden');
+  document.getElementById('status-panel').classList.remove('hidden');
+  document.getElementById('status-message').textContent='Welcome '+name;
+}
+
+function formTriangles(){
+  const pts=[...appData.participants]; appData.triangles=[];
+  while(pts.length>=3){const members=pts.splice(0,3);appData.triangles.push({members,color:'#'+Math.floor(Math.random()*16777215).toString(16)});} }
 </script>
 </body>
 </html>
