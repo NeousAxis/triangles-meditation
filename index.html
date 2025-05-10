@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Méditation en triangle (Offline)</title>
+  <title>Méditation en triangle</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Leaflet CSS -->
@@ -14,11 +14,11 @@
   html, body { margin:0; padding:0; height:100%; }
   #map { width:100%; height:100%; }
 
-  /* Tes contrôles à droite, sans toucher au zoom Leaflet */
+  /* Contrôles en surimpression */
   #controls {
     position: absolute;
     top: 1rem;
-    right: 1rem;    /* <-- À droite */
+    right: 1rem;
     z-index: 1000;
     background: rgba(255,255,255,0.9);
     padding: 1rem;
@@ -29,26 +29,30 @@
     flex-direction: column;
     gap: 0.5rem;
   }
-  #controls label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
+  #controls label { display: flex; align-items: center; gap: 0.5rem; }
   #controls select, #controls button {
     padding: 0.3rem 0.6rem;
     font-size: 1rem;
   }
 </style>
+</head>
 <body>
-  <!-- Mové ici : seul ce div change de position -->
   <div id="controls">
     <label>
-      Triangle :
+      <span id="lbl-triangle">Triangle :</span>
       <select id="groupSelect">
         <option value="">— Nouveau —</option>
       </select>
     </label>
     <button id="addBtn">Je médite !</button>
+    <button id="newBtn">Nouveau</button>
+    <label>
+      <span id="lbl-lang">Langue :</span>
+      <select id="langSelect">
+        <option value="fr">FR</option>
+        <option value="en">EN</n        option>
+      </select>
+    </label>
   </div>
 
   <div id="map"></div>
@@ -59,108 +63,122 @@
 
   <script>
   window.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM ready 👉 on initialise la carte et les contrôles.')
+    const LS_KEY = 'triangleMeditation';
+    let markers = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
 
-    const LS_KEY = 'triangleMeditation'
-    let markers = JSON.parse(localStorage.getItem(LS_KEY) || '[]')
+    // Traductions
+    const i18n = {
+      fr: {
+        triangle: 'Triangle',
+        add: 'Je médite !',
+        new: 'Nouveau',
+        lang: 'Langue',
+        popup: 'Triangle',
+        alertAdd: 'Point ajouté au triangle : '
+      },
+      en: {
+        triangle: 'Triangle',
+        add: 'I meditate!',
+        new: 'New',
+        lang: 'Language',
+        popup: 'Triangle',
+        alertAdd: 'Point added to triangle: '
+      }
+    };
+    let lang = 'fr';
 
-    // Initialiser la carte
-    const map = L.map('map').setView([0, 0], 2)
+    // Carte
+    const map = L.map('map').setView([0, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map)
-
-    // Fix icônes Leaflet
-    delete L.Icon.Default.prototype._getIconUrl
+    }).addTo(map);
+    delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl:
-        'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-      iconUrl:
-        'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-      shadowUrl:
-        'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
-    })
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
+    });
 
-    const sel = document.getElementById('groupSelect')
-    const btn = document.getElementById('addBtn')
+    const sel = document.getElementById('groupSelect');
+    const addBtn = document.getElementById('addBtn');
+    const newBtn = document.getElementById('newBtn');
+    const langSelect = document.getElementById('langSelect');
+    const lblTriangle = document.getElementById('lbl-triangle');
+    const lblLang = document.getElementById('lbl-lang');
+
+    function translateUI() {
+      addBtn.textContent = i18n[lang].add;
+      newBtn.textContent = i18n[lang].new;
+      lblTriangle.textContent = i18n[lang].triangle + ':';
+      lblLang.textContent = i18n[lang].lang + ':';
+    }
 
     function renderMarkers(highlightId) {
-      // Nettoie les markers précédents
       map.eachLayer(layer => {
         if (layer.options && layer.options.pane === 'markerPane') {
-          map.removeLayer(layer)
+          map.removeLayer(layer);
         }
-      })
-      // Ajoute chaque point
+      });
       markers.forEach(m => {
-        const isHighlight = m.triangle_id === highlightId
-        if (isHighlight) {
-          L.circleMarker([m.lat, m.lng], {
-            radius: 8,
-            color: '#ff0000',
-            fillColor: '#ffcccc',
-            fillOpacity: 0.8
-          })
-            .bindPopup(`▶ Triangle <b>${m.triangle_id}</b><br/>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`)
-            .addTo(map)
-        } else {
-          L.marker([m.lat, m.lng])
-            .bindPopup(`Triangle ${m.triangle_id}<br/>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`)
-            .addTo(map)
-        }
-      })
+        const isHighlight = m.triangle_id === highlightId;
+        const opts = isHighlight
+          ? { radius: 8, color: '#ff0000', fillColor: '#ffcccc', fillOpacity: 0.8 }
+          : {};
+        const marker = isHighlight
+          ? L.circleMarker([m.lat, m.lng], opts)
+          : L.marker([m.lat, m.lng]);
+        marker.bindPopup(`▶ ${i18n[lang].popup} <b>${m.triangle_id}</b><br/>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`);
+        marker.addTo(map);
+      });
     }
 
     function refreshGroups() {
       const counts = markers.reduce((acc, { triangle_id }) => {
-        acc[triangle_id] = (acc[triangle_id] || 0) + 1
-        return acc
-      }, {})
-      sel.innerHTML = '<option value="">— Nouveau —</option>'
+        acc[triangle_id] = (acc[triangle_id] || 0) + 1;
+        return acc;
+      }, {});
+      sel.innerHTML = `<option value="">— ${i18n[lang].new} —</option>`;
       Object.entries(counts).forEach(([id, count]) => {
-        const o = document.createElement('option')
-        o.value = id
-        o.textContent = `${id} (${count})`
-        sel.appendChild(o)
-      })
-      console.log('Groupes mis à jour', counts)
+        const o = document.createElement('option');
+        o.value = id;
+        o.textContent = `${id} (${count})`;
+        sel.appendChild(o);
+      });
     }
 
-    // Événement click “Je médite !”
-    btn.addEventListener('click', () => {
-      console.log('Bouton Je médite cliqué')
-      const triId = sel.value || uuidv4().slice(0,8)
+    addBtn.addEventListener('click', () => {
+      const triId = sel.value || uuidv4().slice(0,8);
       if (!navigator.geolocation) {
-        return alert('Géolocalisation non supportée')
+        return alert('Geolocation not supported');
       }
       navigator.geolocation.getCurrentPosition(({ coords }) => {
-        const newPoint = {
-          id: uuidv4(),
-          triangle_id: triId,
-          lat: coords.latitude,
-          lng: coords.longitude
-        }
-        markers.push(newPoint)
-        localStorage.setItem(LS_KEY, JSON.stringify(markers))
-        refreshGroups()
-        renderMarkers(sel.value || triId)
-        alert(`Point ajouté au triangle : ${triId}`)
-      }, err => {
-        console.error(err)
-        alert('Erreur géoloc : ' + err.message)
-      })
-    })
+        const newPoint = { id: uuidv4(), triangle_id: triId, lat: coords.latitude, lng: coords.longitude };
+        markers.push(newPoint);
+        localStorage.setItem(LS_KEY, JSON.stringify(markers));
+        refreshGroups();
+        renderMarkers(sel.value || triId);
+        alert(i18n[lang].alertAdd + triId);
+      }, err => alert(err.message));
+    });
 
-    // Événement changement de triangle sélectionné
-    sel.addEventListener('change', e => {
-      console.log('Triangle sélectionné', e.target.value)
-      renderMarkers(e.target.value)
-    })
+    newBtn.addEventListener('click', () => {
+      sel.value = '';
+      renderMarkers('');
+    });
 
-    // Premier affichage
-    refreshGroups()
-    renderMarkers('')
-  })
+    sel.addEventListener('change', e => renderMarkers(e.target.value));
+    langSelect.addEventListener('change', e => {
+      lang = e.target.value;
+      translateUI();
+      refreshGroups();
+      renderMarkers(sel.value);
+    });
+
+    // Initial load
+    translateUI();
+    refreshGroups();
+    renderMarkers('');
+  });
   </script>
 </body>
 </html>
