@@ -9,14 +9,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: { primary: '#5D5CDE' }
-        }
-      }
-    };
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#5D5CDE' } } } };
   </script>
   <!-- D3 & TopoJSON -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -29,7 +22,7 @@
       <h1 class="text-2xl font-bold" id="app-title">Triangle Meditation Network</h1>
       <div class="flex items-center space-x-4">
         <button id="theme-toggle" aria-label="Toggle Dark Mode" class="p-2 rounded hover:bg-opacity-75">
-          <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8-9h1M3 12H2m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-13.414l.707.707M17.657 17.657l.707.707" />
           </svg>
         </button>
@@ -53,74 +46,38 @@
     <section class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold" id="active-triangles-title">Active Triangles</h2>
-        <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded hover:bg-opacity-90 text-sm">
-          <!-- icon --> Use My Location
-        </button>
+        <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded hover:bg-opacity-90 text-sm">Use My Location</button>
       </div>
-      <div id="map-container" class="w-full h-80 md:h-96 relative">
-        <svg id="map" class="w-full h-full"></svg>
-      </div>
+      <div id="map-container" class="w-full h-80 md:h-96 relative"><svg id="map" class="w-full h-full"></svg></div>
       <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
-          <h3 class="font-semibold" id="participants-label">Participants</h3>
-          <p id="participants-count" class="text-xl">0</p>
-        </div>
-        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
-          <h3 class="font-semibold" id="triangles-label">Triangles</h3>
-          <p id="triangles-count" class="text-xl">0</p>
-        </div>
-        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
-          <h3 class="font-semibold" id="waiting-label">Waiting</h3>
-          <p id="waiting-count" class="text-xl">0</p>
-        </div>
+        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 class="font-semibold" id="participants-label">Participants</h3><p id="participants-count" class="text-xl">0</p></div>
+        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 class="font-semibold" id="triangles-label">Triangles</h3><p id="triangles-count" class="text-xl">0</p></div>
+        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 class="font-semibold" id="waiting-label">Waiting</h3><p id="waiting-count" class="text-xl">0</p></div>
       </div>
-      <button id="simulation-button" class="mt-4 w-full bg-primary hover:bg-opacity-90 text-white py-2 rounded">Start 30‑Person Simulation</button>
+      <button id="simulation-button" class="mt-4 w-full bg-primary hover:bg-opacity-90 text-white py-2 rounded">Start 30-Person Simulation</button>
     </section>
 
     <!-- Registration & Status -->
     <aside class="w-full md:w-1/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-
       <div id="registration-form" class="space-y-4">
         <h2 class="text-xl font-semibold text-center" id="welcome-text">Join the Network</h2>
         <form class="space-y-4">
-          <div>
-            <label for="user-name" id="user-name-label" class="block mb-1">Your Name</label>
-            <input type="text" id="user-name" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700" required />
-          </div>
-          <div>
-            <label for="user-continent" id="continent-label" class="block mb-1">Continent</label>
-            <select id="user-continent" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700">
-              <option value="">-- Select --</option>
-            </select>
-          </div>
-          <div id="country-container" class="hidden">
-            <label for="user-country" id="country-label" class="block mb-1">Country</label>
-            <select id="user-country" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700">
-              <option value="">-- Select --</option>
-            </select>
-          </div>
-          <div id="city-container" class="hidden">
-            <label for="user-city" id="city-label" class="block mb-1">City</label>
-            <input type="text" id="user-city" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700" required />
-            <p id="city-help" class="text-sm text-gray-500">If not in DB, we'll use country center coords.</p>
-          </div>
+          <div><label for="user-name" id="user-name-label" class="block mb-1">Your Name</label><input type="text" id="user-name" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700" required></div>
+          <div><label for="user-continent" id="continent-label" class="block mb-1">Continent</label><select id="user-continent" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700"><option value="">-- Select --</option></select></div>
+          <div id="country-container" class="hidden"><label for="user-country" id="country-label" class="block mb-1">Country</label><select id="user-country" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700"><option value="">-- Select --</option></select></div>
+          <div id="city-container" class="hidden"><label for="user-city" id="city-label" class="block mb-1">City</label><input type="text" id="user-city" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700" required><p id="city-help" class="text-sm text-gray-500">If not in DB, we'll use country center coords.</p></div>
           <button type="submit" id="join-network" class="w-full bg-primary text-white py-2 rounded">Join Network</button>
         </form>
       </div>
-
       <div id="status-panel" class="hidden space-y-4 text-center">
         <h3 id="status-title" class="text-lg font-semibold">Network Status</h3>
         <p id="status-message">You have joined the meditation network.</p>
         <p id="participant-info">Coords: [0, 0]</p>
         <p id="triangle-status">Waiting for triangle...</p>
         <div id="position-timer" class="text-sm text-gray-500">30:00</div>
-        <div id="meditation-timer-container" class="hidden">
-          <div id="meditation-timer" class="text-4xl font-bold">20:00</div>
-          <button id="start-meditation" class="w-full bg-primary text-white py-2 rounded">Start Meditation</button>
-        </div>
+        <div id="meditation-timer-container" class="hidden"><div id="meditation-timer" class="text-4xl font-bold">20:00</div><button id="start-meditation" class="w-full bg-primary text-white py-2 rounded">Start Meditation</button></div>
         <button id="leave-network" class="w-full bg-red-500 text-white py-2 rounded">Leave Network</button>
       </div>
-
     </aside>
   </main>
 
@@ -129,21 +86,36 @@
   </footer>
 
   <!-- Geolocation Modal -->
-  <div id="geolocation-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm mx-4">
-      <h3 class="text-lg font-bold mb-2">Location Permission Required</h3>
-      <p class="mb-4">Please allow location access to use this feature.</p>
-      <button id="close-geolocation-modal" class="bg-primary text-white px-4 py-2 rounded">OK</button>
-    </div>
-  </div>
+  <div id="geolocation-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center"><div class="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm mx-4"><h3 class="text-lg font-bold mb-2">Location Permission Required</h3><p class="mb-4">Please allow location access to use this feature.</p><button id="close-geolocation-modal" class="bg-primary text-white px-4 py-2 rounded">OK</button></div></div>
 
-  <!-- Scripts -->
-  <script src="js/translations.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/geolocation.js"></script>
-  <script src="js/map.js"></script>
-  <script src="js/simulation.js"></script>
-  <script src="js/app.js"></script>
-
+  <!-- Inline Scripts -->
+  <script>
+  // Translations
+  const translations = { 'app-title':{en:'Triangle Meditation Network',fr:'Réseau de Méditation Triangle'}, 'welcome-text':{en:'Join the Network',fr:'Rejoignez le réseau'}, 'user-name-label':{en:'Your Name',fr:'Votre nom'}, 'continent-label':{en:'Continent',fr:'Continent'}, 'country-label':{en:'Country',fr:'Pays'}, 'city-label':{en:'City',fr:'Ville'}, 'join-network':{en:'Join Network',fr:'Rejoindre'} };
+  function setLanguage(lang){ Object.entries(translations).forEach(([id,dict])=>{ const el=document.getElementById(id); if(el&&dict[lang])el.textContent=dict[lang]; }); }
+  // Storage
+  function saveLang(l){localStorage.tmn_lang=l;} function loadLang(){return localStorage.tmn_lang||'en';} function saveUser(u){localStorage.tmn_user=JSON.stringify(u);} function loadUser(){return JSON.parse(localStorage.tmn_user||null);}  
+  // Geolocation
+  function getCurrentPosition(){return new Promise((res,rej)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>res([p.coords.latitude,p.coords.longitude]),()=>rej()):rej());}
+  // Map
+  let projection, path, svg;
+  function initMap(){svg=d3.select('#map');projection=d3.geoNaturalEarth1().scale(150).translate([svg.node().clientWidth/2,svg.node().clientHeight/2]);path=d3.geoPath().projection(projection);d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t=>{const f=topojson.feature(t,t.objects.countries);svg.append('g').selectAll('path').data(f.features).enter().append('path').attr('d',path).attr('fill','#ccc').attr('stroke','#333');});}
+  function centerOn(coords){const [lat,lon]=coords; const [x,y]=projection([lon,lat]);svg.transition().duration(750).call(d3.zoom().transform,d3.zoomIdentity.translate(svg.node().clientWidth/2-x,svg.node().clientHeight/2-y).scale(2));}
+  // Simulation
+  function startSimulation(){const data=d3.range(30).map(()=>({lat:(Math.random()*180)-90,lon:(Math.random()*360)-180}));svg.selectAll('.sim-point').remove();svg.selectAll('.sim-point').data(data).enter().append('circle').attr('class','sim-point').attr('r',3).attr('fill','#5D5CDE').attr('transform',d=>{const p=projection([d.lon,d.lat]);return `translate(${p})`;});}
+  document.addEventListener('DOMContentLoaded',()=>{
+    // Language
+    const lang=loadLang();document.getElementById('language-selector').value=lang;setLanguage(lang);document.getElementById('language-selector').addEventListener('change',e=>{setLanguage(e.target.value);saveLang(e.target.value);});
+    // Dark mode
+    document.getElementById('theme-toggle').addEventListener('click',()=>document.body.classList.toggle('dark'));
+    // Map init
+    initMap(); document.getElementById('geolocate-button').addEventListener('click',()=>getCurrentPosition().then(centerOn).catch(()=>document.getElementById('geolocation-modal').classList.remove('hidden')));
+    document.getElementById('close-geolocation-modal').addEventListener('click',()=>document.getElementById('geolocation-modal').classList.add('hidden'));
+    // Simulation
+    document.getElementById('simulation-button').addEventListener('click',startSimulation);
+    // Registration
+    document.querySelector('#registration-form form').addEventListener('submit',e=>{e.preventDefault();const f=e.target,u={name:f['user-name'].value};saveUser(u);document.getElementById('registration-form').classList.add('hidden');document.getElementById('status-panel').classList.remove('hidden');document.getElementById('status-message').textContent=`Bienvenu·e ${u.name} !`;});
+  });
+  </script>
 </body>
 </html>
