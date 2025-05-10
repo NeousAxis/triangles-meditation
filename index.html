@@ -7,23 +7,6 @@
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-  <!-- Supabase client -->
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    html, body { margin:0; padding:0; height:100%; }
-    #map { width:100%; height:100%; }
-    #controls {
-      position: absolute; top:1rem; right:1rem; z-index:1000;
-      background:rgba(255,255,255,0.9); padding:1rem;
-      border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.3);
-      font-family:sans-serif; display:flex; flex-direction:column; gap:0.5rem;
-    }
-    #controls .group-list { display:flex; flex-wrap:wrap; gap:0.3rem; }
-    #controls .group-list button,
-    #controls button { padding:0.3rem 0.6rem; font-size:0.9rem; }
-    #controls label { display:flex; align-items:center; gap:0.5rem; }
-  </style>
 </head>
 <body>
   <div id="controls">
@@ -31,7 +14,6 @@
       <span id="lbl-triangle">Triangle :</span>
       <div id="groupList" class="group-list"></div>
     </div>
-    <button id="newBtn">Nouveau</button>
     <button id="addBtn">Je médite !</button>
     <button id="simulateBtn">Simuler</button>
     <label><span id="lbl-lang">Langue :</span>
@@ -40,12 +22,31 @@
   </div>
   <div id="map"></div>
 
+  <!-- JS libs -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <style>
+    html, body { margin:0; padding:0; height:100%; }
+    #map { width:100%; height:100%; }
+    #controls {
+      position:absolute; top:1rem; right:1rem; z-index:1000;
+      background:rgba(255,255,255,0.9); padding:1rem;
+      border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      font-family:sans-serif;
+    }
+    .group-list { display:flex; flex-wrap:wrap; gap:0.3rem; margin-bottom:0.5rem; }
+    .group-list button,
+    #controls button { padding:0.3rem 0.6rem; font-size:0.9rem; }
+    #controls label { display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; }
+  </style>
+
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // Supabase
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Supabase client
     const supabase = supabase.createClient('https://YOUR_PROJECT.supabase.co','PUBLIC_ANON_KEY');
     let markers = [];
-    let selectedTriangle = '';
+    let selected = '';
     let lang = 'fr';
 
     const i18n = {
@@ -53,23 +54,28 @@
       en:{triangle:'Triangle',add:'I meditate!',simulate:'Simulate',new:'New',lang:'Language',popup:'Triangle',alertAdd:'Added point: '}
     };
 
-    // DOM
+    // DOM elements
     const groupList = document.getElementById('groupList');
-    const newBtn = document.getElementById('newBtn');
     const addBtn = document.getElementById('addBtn');
     const simBtn = document.getElementById('simulateBtn');
     const langSelect = document.getElementById('langSelect');
     const lblTriangle = document.getElementById('lbl-triangle');
     const lblLang = document.getElementById('lbl-lang');
 
-    // Populate languages
+    // Populate language selector
     Object.keys(i18n).forEach(code => {
-      const o = document.createElement('option'); o.value = code; o.textContent = code.toUpperCase(); langSelect.appendChild(o);
-    }); langSelect.value = lang;
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = code.toUpperCase();
+      langSelect.appendChild(opt);
+    });
+    langSelect.value = lang;
 
-    // Leaflet map
+    // Initialize map
     const map = L.map('map').setView([0,0],2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM'}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap contributors'
+    }).addTo(map);
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -77,72 +83,80 @@
       shadowUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
     });
 
-    function translateUI(){
-      lblTriangle.textContent = `${i18n[lang].triangle}:`;
-      newBtn.textContent = i18n[lang].new;
+    // UI translation
+    function translate() {
+      lblTriangle.textContent = `${i18n[lang].triangle} :`;
       addBtn.textContent = i18n[lang].add;
       simBtn.textContent = i18n[lang].simulate;
-      lblLang.textContent = `${i18n[lang].lang}:`;
+      lblLang.textContent = `${i18n[lang].lang} :`;
     }
 
-    function renderMarkers(){
-      map.eachLayer(layer=>{ if(layer.options?.pane==='markerPane') map.removeLayer(layer); });
-      markers.forEach(m=>{
-        const isSel = m.triangle_id === selectedTriangle;
-        const marker = isSel
-          ? L.circleMarker([m.lat,m.lng],{radius:8,color:'#f00',fillOpacity:0.6})
-          : L.marker([m.lat,m.lng]);
-        marker.bindPopup(`${isSel?'▶ ':''}${i18n[lang].popup}${m.triangle_id}`);
-        marker.addTo(map);
-      });
-    }
-
-    function refreshGroups(){
-      const counts = markers.reduce((a,{triangle_id})=>{ a[triangle_id]=(a[triangle_id]||0)+1; return a; },{});
+    // Render triangles list
+    function renderGroups() {
       groupList.innerHTML = '';
-      // List existing triangles
-      Object.entries(counts).forEach(([id,count])=>{
+      // New option
+      const btnNew = document.createElement('button');
+      btnNew.textContent = i18n[lang].new;
+      btnNew.onclick = () => { selected = ''; renderGroups(); renderMarkers(); };
+      groupList.appendChild(btnNew);
+      // Existing triangles
+      const counts = markers.reduce((acc,m)=>{ acc[m.triangle_id]=(acc[m.triangle_id]||0)+1; return acc; },{});
+      Object.entries(counts).forEach(([id,count]) => {
         const btn = document.createElement('button');
         btn.textContent = `${id} (${count})`;
-        btn.onclick = () => { selectedTriangle = id; renderButtons(); renderMarkers(); };
-        if(id === selectedTriangle) btn.style.background='#ddd';
+        btn.onclick = () => { selected = id; renderGroups(); renderMarkers(); };
+        if(id===selected) btn.style.background='#ddd';
         groupList.appendChild(btn);
       });
     }
 
-    function renderButtons(){ translateUI(); refreshGroups(); }
-
-    // Load markers and subscribe
-    async function load(){
-      const { data } = await supabase.from('markers').select('*');
-      markers = data;
-      renderButtons(); renderMarkers();
+    // Render markers on map
+    function renderMarkers() {
+      map.eachLayer(l=>{ if(l.options.pane==='markerPane') map.removeLayer(l); });
+      markers.forEach(m => {
+        const isSel = m.triangle_id===selected;
+        const mk = isSel
+          ? L.circleMarker([m.lat,m.lng],{radius:8, color:'#f00', fillOpacity:0.6})
+          : L.marker([m.lat,m.lng]);
+        mk.bindPopup(`${isSel?'▶ ':''}${i18n[lang].popup}${m.triangle_id}`);
+        mk.addTo(map);
+      });
     }
+
+    // Load data
+    async function load() {
+      const { data } = await supabase.from('markers').select('*');
+      markers = data || [];
+      renderGroups(); renderMarkers();
+    }
+
+    // Real-time subscription
     supabase.from('markers').on('*', () => load()).subscribe();
 
-    // Events
-    newBtn.onclick = () => { selectedTriangle = ''; renderButtons(); renderMarkers(); };
+    // Add point
     addBtn.onclick = () => navigator.geolocation.getCurrentPosition(async ({coords}) => {
-      const id = selectedTriangle || crypto.randomUUID().slice(0,8);
-      await supabase.from('markers').insert({ triangle_id: id, lat: coords.latitude, lng: coords.longitude });
-      alert(i18n[lang].alertAdd + id);
+      const tri = selected || crypto.randomUUID().slice(0,8);
+      await supabase.from('markers').insert({ triangle_id: tri, lat: coords.latitude, lng: coords.longitude });
+      alert(i18n[lang].alertAdd + tri);
     });
 
+    // Simulate offline
     simBtn.onclick = async () => {
       await supabase.from('markers').delete().neq('id', 0);
       for(let t=0; t<10; t++){
         const tri = crypto.randomUUID().slice(0,6);
-        const lat0 = (Math.random()*180)-90, lng0 = (Math.random()*360)-180;
-        for(let i=0; i<3; i++){
-          await supabase.from('markers').insert({ triangle_id: tri, lat: lat0 + (Math.random()-0.5)*5, lng: lng0 + (Math.random()-0.5)*5 });
+        const lat0 = Math.random()*180-90, lng0 = Math.random()*360-180;
+        for(let i=0; i<3; i++) {
+          await supabase.from('markers').insert({ triangle_id: tri, lat: lat0+(Math.random()-0.5)*5, lng: lng0+(Math.random()-0.5)*5 });
         }
       }
     };
 
-    langSelect.onchange = e => { lang = e.target.value; renderButtons(); renderMarkers(); };
+    // Lang change
+    langSelect.onchange = e => { lang=e.target.value; translate(); renderGroups(); renderMarkers(); };
 
-    // Init
-    translateUI(); load();
+    // Init UI
+    translate(); load();
   });
   </script>
 </body>
