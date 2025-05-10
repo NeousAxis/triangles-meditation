@@ -16,13 +16,14 @@
     </div>
     <button id="addBtn">Je médite !</button>
     <button id="simulateBtn">Simuler</button>
-    <label><span id="lbl-lang">Langue :</span>
+    <label>
+      <span id="lbl-lang">Langue :</span>
       <select id="langSelect"></select>
     </label>
   </div>
   <div id="map"></div>
 
-  <!-- JS libs -->
+  <!-- Supabase et Leaflet JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
@@ -43,26 +44,33 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    // Supabase client
-    const supabase = supabase.createClient('https://YOUR_PROJECT.supabase.co','PUBLIC_ANON_KEY');
+    // Configuration Supabase (intégrée directement)
+    const SUPABASE_URL     = 'https://dazfsyuqruhauaxoscim.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhemZzeXVxcnVoYXVheG9zY2ltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4NjA5ODcsImV4cCI6MjA2MjQzNjk4N30.rr_439yuuUg-EB5-Q4Zh1tfyRkSDqY74IHs67Zy6UxY';
+
+    // Initialise Supabase
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // État de l’app
     let markers = [];
     let selected = '';
     let lang = 'fr';
 
+    // Traductions
     const i18n = {
-      fr:{triangle:'Triangle',add:'Je médite !',simulate:'Simuler',new:'Nouveau',lang:'Langue',popup:'Triangle',alertAdd:'Point ajouté : '},
-      en:{triangle:'Triangle',add:'I meditate!',simulate:'Simulate',new:'New',lang:'Language',popup:'Triangle',alertAdd:'Added point: '}
+      fr: { triangle:'Triangle', add:'Je médite !', simulate:'Simuler', new:'Nouveau', lang:'Langue', popup:'Triangle', alertAdd:'Point ajouté : ' },
+      en: { triangle:'Triangle', add:'I meditate!', simulate:'Simulate', new:'New', lang:'Language', popup:'Triangle', alertAdd:'Added point: ' }
     };
 
-    // DOM elements
-    const groupList = document.getElementById('groupList');
-    const addBtn = document.getElementById('addBtn');
-    const simBtn = document.getElementById('simulateBtn');
-    const langSelect = document.getElementById('langSelect');
+    // Références DOM
+    const groupList   = document.getElementById('groupList');
+    const addBtn      = document.getElementById('addBtn');
+    const simBtn      = document.getElementById('simulateBtn');
+    const langSelect  = document.getElementById('langSelect');
     const lblTriangle = document.getElementById('lbl-triangle');
-    const lblLang = document.getElementById('lbl-lang');
+    const lblLang     = document.getElementById('lbl-lang');
 
-    // Populate language selector
+    // Remplissage sélecteur langues
     Object.keys(i18n).forEach(code => {
       const opt = document.createElement('option');
       opt.value = code;
@@ -71,92 +79,92 @@
     });
     langSelect.value = lang;
 
-    // Initialize map
+    // Initialisation carte Leaflet
     const map = L.map('map').setView([0,0],2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'© OpenStreetMap contributors'
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
     }).addTo(map);
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-      iconUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-      shadowUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+      iconUrl:       'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      shadowUrl:     'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
     });
 
-    // UI translation
+    // Fonctions UI
     function translate() {
-      lblTriangle.textContent = `${i18n[lang].triangle} :`;
-      addBtn.textContent = i18n[lang].add;
-      simBtn.textContent = i18n[lang].simulate;
-      lblLang.textContent = `${i18n[lang].lang} :`;
+      lblTriangle.textContent = i18n[lang].triangle + ' :';
+      addBtn.textContent     = i18n[lang].add;
+      simBtn.textContent     = i18n[lang].simulate;
+      lblLang.textContent    = i18n[lang].lang + ' :';
     }
-
-    // Render triangles list
     function renderGroups() {
       groupList.innerHTML = '';
-      // New option
+      // Bouton Nouveau
       const btnNew = document.createElement('button');
       btnNew.textContent = i18n[lang].new;
       btnNew.onclick = () => { selected = ''; renderGroups(); renderMarkers(); };
       groupList.appendChild(btnNew);
-      // Existing triangles
-      const counts = markers.reduce((acc,m)=>{ acc[m.triangle_id]=(acc[m.triangle_id]||0)+1; return acc; },{});
+      // Triangles existants
+      const counts = markers.reduce((acc,m) => {
+        acc[m.triangle_id] = (acc[m.triangle_id] || 0) + 1;
+        return acc;
+      }, {});
       Object.entries(counts).forEach(([id,count]) => {
         const btn = document.createElement('button');
         btn.textContent = `${id} (${count})`;
         btn.onclick = () => { selected = id; renderGroups(); renderMarkers(); };
-        if(id===selected) btn.style.background='#ddd';
+        if(id === selected) btn.style.background = '#ddd';
         groupList.appendChild(btn);
       });
     }
-
-    // Render markers on map
     function renderMarkers() {
-      map.eachLayer(l=>{ if(l.options.pane==='markerPane') map.removeLayer(l); });
+      map.eachLayer(l => { if(l.options.pane === 'markerPane') map.removeLayer(l); });
       markers.forEach(m => {
-        const isSel = m.triangle_id===selected;
+        const isSel = m.triangle_id === selected;
         const mk = isSel
-          ? L.circleMarker([m.lat,m.lng],{radius:8, color:'#f00', fillOpacity:0.6})
+          ? L.circleMarker([m.lat,m.lng], { radius:8, color:'#f00', fillOpacity:0.6 })
           : L.marker([m.lat,m.lng]);
-        mk.bindPopup(`${isSel?'▶ ':''}${i18n[lang].popup}${m.triangle_id}`);
+        mk.bindPopup((isSel ? '▶ ' : '') + i18n[lang].popup + m.triangle_id);
         mk.addTo(map);
       });
     }
 
-    // Load data
+    // Chargement et realtime
     async function load() {
       const { data } = await supabase.from('markers').select('*');
       markers = data || [];
-      renderGroups(); renderMarkers();
+      renderGroups();
+      renderMarkers();
     }
-
-    // Real-time subscription
     supabase.from('markers').on('*', () => load()).subscribe();
 
-    // Add point
+    // Ajout de point
     addBtn.onclick = () => navigator.geolocation.getCurrentPosition(async ({coords}) => {
       const tri = selected || crypto.randomUUID().slice(0,8);
-      await supabase.from('markers').insert({ triangle_id: tri, lat: coords.latitude, lng: coords.longitude });
+      await supabase.from('markers').insert({ triangle_id:tri, lat:coords.latitude, lng:coords.longitude });
       alert(i18n[lang].alertAdd + tri);
     });
 
-    // Simulate offline
+    // Simulation
     simBtn.onclick = async () => {
       await supabase.from('markers').delete().neq('id', 0);
-      for(let t=0; t<10; t++){
+      for(let t=0; t<10; t++) {
         const tri = crypto.randomUUID().slice(0,6);
-        const lat0 = Math.random()*180-90, lng0 = Math.random()*360-180;
+        const lat0 = Math.random()*180 - 90;
+        const lng0 = Math.random()*360 - 180;
         for(let i=0; i<3; i++) {
-          await supabase.from('markers').insert({ triangle_id: tri, lat: lat0+(Math.random()-0.5)*5, lng: lng0+(Math.random()-0.5)*5 });
+          await supabase.from('markers').insert({ triangle_id:tri, lat:lat0+(Math.random()-0.5)*5, lng:lng0+(Math.random()-0.5)*5 });
         }
       }
     };
 
-    // Lang change
-    langSelect.onchange = e => { lang=e.target.value; translate(); renderGroups(); renderMarkers(); };
+    // Changement langue
+    langSelect.onchange = e => { lang = e.target.value; translate(); renderGroups(); renderMarkers(); };
 
-    // Init UI
-    translate(); load();
+    // Initialisation
+    translate();
+    load();
   });
   </script>
 </body>
