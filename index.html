@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Méditation en triangle (Offline)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+  />
+<style>
+  html, body { margin:0; padding:0; height:100%; }
+  #map { width:100%; height:100%; }
+
+  /* Tes contrôles à droite, sans toucher au zoom Leaflet */
+  #controls {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;    /* <-- À droite */
+    z-index: 1000;
+    background: rgba(255,255,255,0.9);
+    padding: 1rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  #controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  #controls select, #controls button {
+    padding: 0.3rem 0.6rem;
+    font-size: 1rem;
+  }
+</style>
+<body>
+  <!-- Mové ici : seul ce div change de position -->
+  <div id="controls">
+    <label>
+      Triangle :
+      <select id="groupSelect">
+        <option value="">— Nouveau —</option>
+      </select>
+    </label>
+    <button id="addBtn">Je médite !</button>
+  </div>
+
+  <div id="map"></div>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <!-- uuid -->
+  <script src="https://cdn.jsdelivr.net/npm/uuid@9.0.0/dist/umd/uuidv4.min.js"></script>
+
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM ready 👉 on initialise la carte et les contrôles.')
+
+    const LS_KEY = 'triangleMeditation'
+    let markers = JSON.parse(localStorage.getItem(LS_KEY) || '[]')
+
+    // Initialiser la carte
+    const map = L.map('map').setView([0, 0], 2)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map)
+
+    // Fix icônes Leaflet
+    delete L.Icon.Default.prototype._getIconUrl
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl:
+        'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+      iconUrl:
+        'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      shadowUrl:
+        'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
+    })
+
+    const sel = document.getElementById('groupSelect')
+    const btn = document.getElementById('addBtn')
+
+    function renderMarkers(highlightId) {
+      // Nettoie les markers précédents
+      map.eachLayer(layer => {
+        if (layer.options && layer.options.pane === 'markerPane') {
+          map.removeLayer(layer)
+        }
+      })
+      // Ajoute chaque point
+      markers.forEach(m => {
+        const isHighlight = m.triangle_id === highlightId
+        if (isHighlight) {
+          L.circleMarker([m.lat, m.lng], {
+            radius: 8,
+            color: '#ff0000',
+            fillColor: '#ffcccc',
+            fillOpacity: 0.8
+          })
+            .bindPopup(`▶ Triangle <b>${m.triangle_id}</b><br/>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`)
+            .addTo(map)
+        } else {
+          L.marker([m.lat, m.lng])
+            .bindPopup(`Triangle ${m.triangle_id}<br/>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`)
+            .addTo(map)
+        }
+      })
+    }
+
+    function refreshGroups() {
+      const counts = markers.reduce((acc, { triangle_id }) => {
+        acc[triangle_id] = (acc[triangle_id] || 0) + 1
+        return acc
+      }, {})
+      sel.innerHTML = '<option value="">— Nouveau —</option>'
+      Object.entries(counts).forEach(([id, count]) => {
+        const o = document.createElement('option')
+        o.value = id
+        o.textContent = `${id} (${count})`
+        sel.appendChild(o)
+      })
+      console.log('Groupes mis à jour', counts)
+    }
+
+    // Événement click “Je médite !”
+    btn.addEventListener('click', () => {
+      console.log('Bouton Je médite cliqué')
+      const triId = sel.value || uuidv4().slice(0,8)
+      if (!navigator.geolocation) {
+        return alert('Géolocalisation non supportée')
+      }
+      navigator.geolocation.getCurrentPosition(({ coords }) => {
+        const newPoint = {
+          id: uuidv4(),
+          triangle_id: triId,
+          lat: coords.latitude,
+          lng: coords.longitude
+        }
+        markers.push(newPoint)
+        localStorage.setItem(LS_KEY, JSON.stringify(markers))
+        refreshGroups()
+        renderMarkers(sel.value || triId)
+        alert(`Point ajouté au triangle : ${triId}`)
+      }, err => {
+        console.error(err)
+        alert('Erreur géoloc : ' + err.message)
+      })
+    })
+
+    // Événement changement de triangle sélectionné
+    sel.addEventListener('change', e => {
+      console.log('Triangle sélectionné', e.target.value)
+      renderMarkers(e.target.value)
+    })
+
+    // Premier affichage
+    refreshGroups()
+    renderMarkers('')
+  })
+  </script>
+</body>
+</html>
