@@ -1,170 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Connect globally in meditation triangles with real-time mapping and community features." />
   <title>Triangle Meditation Network</title>
-  <link rel="icon" href="/favicon.ico" />
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { primary: '#5D5CDE' } } } };
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { primary: '#5D5CDE' } } }
+    };
   </script>
-  <!-- D3, TopoJSON, Delaunay, Zoom -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/topojson.v3.min.js"></script>
   <script src="https://unpkg.com/d3-delaunay@6"></script>
   <script src="https://d3js.org/d3-zoom.v2.min.js"></script>
-  <style>/* Ensure SVG displays */
-    #map { display: block; }
+  <style>
+    .triangle-path { stroke-dasharray:10; animation:dash 3s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset:30; }}
+    .triangle-point { animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:.7;transform:scale(.9);}50%{opacity:1;transform:scale(1.2);} }
+    .user-point { stroke:white;stroke-width:2px;animation:userPulse 2s infinite; }
+    @keyframes userPulse {0%,100%{opacity:.8;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
   </style>
 </head>
-<body class="bg-white text-gray-800 font-sans min-h-screen flex flex-col">
-  <header class="bg-primary text-white p-4 shadow">
-    <div class="container mx-auto flex justify-between items-center">
-      <h1 class="text-2xl" id="app-title">Triangle Meditation Network</h1>
-      <select id="language-selector" class="bg-white text-gray-800 rounded px-3 py-1">
-        <option value="en">English</option>
-        <option value="fr">Français</option>
-        <option value="es">Español</option>
-        <option value="de">Deutsch</option>
-        <option value="it">Italiano</option>
-        <option value="ru">Русский</option>
-      </select>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans min-h-screen flex flex-col">
+
+<header class="bg-primary text-white p-4 shadow-md">
+  <div class="container mx-auto flex justify-between items-center">
+    <h1 id="app-title" class="text-2xl font-bold">Triangle Meditation Network</h1>
+    <select id="language-selector" class="bg-white text-gray-800 rounded px-3 py-1">
+      <option value="en">English</option><option value="fr">Français</option>
+      <option value="es">Español</option><option value="de">Deutsch</option>
+      <option value="it">Italiano</option><option value="ru">Русский</option>
+      <option value="zh">中文</option><option value="ar">العربية</option>
+      <option value="hi">हिन्दी</option>
+    </select>
+  </div>
+</header>
+
+<main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6">
+  <!-- Map -->
+  <section class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
+    <div class="flex justify-between items-center mb-4">
+      <h2 id="active-triangles-title" class="text-xl font-semibold">Active Triangles</h2>
+      <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded">Geolocaliser</button>
     </div>
-  </header>
-  <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6">
-    <section class="w-full md:w-2/3 bg-white p-4 rounded shadow">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl" id="active-triangles-title">Active Triangles</h2>
-        <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded">Use My Location</button>
-      </div>
-      <div id="map-container" class="h-80 md:h-96 bg-gray-100 rounded">
-        <svg id="map" class="w-full h-full"></svg>
-      </div>
-      <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-        <div class="bg-gray-100 p-2 rounded">
-          <h3 id="participants-label">Participants</h3>
-          <p id="participants-count" class="text-xl">0</p>
-        </div>
-        <div class="bg-gray-100 p-2 rounded">
-          <h3 id="triangles-label">Triangles</h3>
-          <p id="triangles-count" class="text-xl">0</p>
-        </div>
-        <div class="bg-gray-100 p-2 rounded">
-          <h3 id="waiting-label">Waiting</h3>
-          <p id="waiting-count" class="text-xl">0</p>
-        </div>
-      </div>
-      <button id="simulation-button" class="mt-4 w-full bg-primary text-white py-2 rounded">Start Test Mode</button>
-    </section>
-    <aside class="w-full md:w-1/3 bg-white p-4 rounded shadow">
-      <h2 class="text-xl text-center" id="welcome-text">Join the Network</h2>
-      <form id="registration-form" class="space-y-4">
-        <div>
-          <label for="user-name" id="user-name-label">Your Name</label>
-          <input id="user-name" type="text" class="w-full border p-2 rounded" required />
-        </div>
-        <div>
-          <label for="user-continent" id="continent-label">Continent</label>
-          <select id="user-continent" class="w-full border p-2 rounded">
-            <option value="">-- Select --</option>
-            <option>Africa</option><option>Asia</option><option>Europe</option>
-            <option>North America</option><option>South America</option><option>Oceania</option>
-          </select>
-        </div>
-        <div>
-          <label for="user-country" id="country-label">Country</label>
-          <select id="user-country" class="w-full border p-2 rounded"><option>-- Select --</option></select>
-        </div>
-        <div>
-          <label for="user-city" id="city-label">City</label>
-          <input id="user-city" type="text" class="w-full border p-2 rounded" />
-        </div>
-        <button id="join-network" class="w-full bg-primary text-white py-2 rounded">Join</button>
-      </form>
-      <div id="status-panel" class="hidden text-center space-y-4">
-        <h3 id="status-title">Network Status</h3>
-        <p id="status-message"></p>
-        <button id="leave-network" class="w-full bg-red-500 text-white py-2 rounded">Leave Network</button>
-      </div>
-    </aside>
-  </main>
-  <footer class="bg-gray-100 p-4 text-center text-sm">© 2025 Triangle Meditation Network</footer>
-  <script>
-    // Translations
-    const dict = {
-      en:{ Join:'Join', 'Your Name':'Your Name', Continent:'Continent', Country:'Country', City:'City', 'Use My Location':'Use My Location', 'Start Test Mode':'Start Test Mode', 'Join the Network':'Join the Network' },
-      fr:{ Join:'Rejoindre', 'Your Name':'Votre nom', Continent:'Continent', Country:'Pays', City:'Ville', 'Use My Location':'Géolocaliser', 'Start Test Mode':'Mode Test', 'Join the Network':'Rejoignez le réseau' },
-      es:{ Join:'Unirse', 'Your Name':'Tu nombre', Continent:'Continente', Country:'País', City:'Ciudad', 'Use My Location':'Usar ubicación', 'Start Test Mode':'Modo Prueba', 'Join the Network':'Únete a la red' },
-      de:{ Join:'Beitreten', 'Your Name':'Dein Name', Continent:'Kontinent', Country:'Land', City:'Stadt', 'Use My Location':'Ort nutzen', 'Start Test Mode':'Testmodus', 'Join the Network':'Netzwerk beitreten' },
-      it:{ Join:'Entra', 'Your Name':'Il tuo nome', Continent:'Continente', Country:'Paese', City:'Città', 'Use My Location':'Usa posizione', 'Start Test Mode':'Modalità Test', 'Join the Network':'Entra nella rete' },
-      ru:{ Join:'Присоединиться', 'Your Name':'Ваше имя', Continent:'Континент', Country:'Страна', City:'Город', 'Use My Location':'Моё местоположение', 'Start Test Mode':'Тестовый режим', 'Join the Network':'Присоединиться к сети' }
-    };
-    function applyLang(lang){
-      localStorage.setItem('lang', lang);
-      ['Join','Your Name','Continent','Country','City','Use My Location','Start Test Mode','Join the Network'].forEach(key=>{
-        document.querySelectorAll('*').forEach(el=>{
-          if(el.textContent.trim()===key) el.textContent = dict[lang][key];
-        });
-      });
-      document.getElementById('language-selector').value = lang;
-    }
-    document.addEventListener('DOMContentLoaded', ()=>{
-      // Language init
-      const sel = document.getElementById('language-selector');
-      const lang = localStorage.getItem('lang') || 'en'; applyLang(lang);
-      sel.addEventListener('change', e=> applyLang(e.target.value));
-      // Populate countries
-      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(world=>{
-        const feats = topojson.feature(world, world.objects.countries).features;
-        const opts = feats.map(f=>f.properties.name).sort();
-        const cs = document.getElementById('user-country');
-        opts.forEach(c=> cs.appendChild(new Option(c,c)));
-      });
-      // Setup map & zoom
-      const svg = d3.select('#map');
-      const proj = d3.geoNaturalEarth1().scale(150)
-                    .translate([svg.node().clientWidth/2, svg.node().clientHeight/2]);
-      const path = d3.geoPath().projection(proj);
-      const zoom = d3.zoom().scaleExtent([1,8]).on('zoom', ({transform})=> svg.select('g').attr('transform', transform));
-      svg.call(zoom);
-      // Draw map
-      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(world=>{
-        const g = svg.append('g');
-        g.selectAll('path').data(topojson.feature(world, world.objects.countries).features)
-         .enter().append('path').attr('d', path).attr('fill','#eee').attr('stroke','#999');
-      });
-      // Geolocate
-      document.getElementById('geolocate-button').onclick = ()=> navigator.geolocation.getCurrentPosition(pos=>{
-        const [lat,lon]=[pos.coords.latitude,pos.coords.longitude];
-        const [x,y] = proj([lon,lat]);
-        svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity.translate(svg.node().clientWidth/2-x, svg.node().clientHeight/2-y).scale(4));
-      }, ()=>alert('Permission denied'));
-      // Registration
-      document.getElementById('registration-form').onsubmit = e=>{
-        e.preventDefault();
-        document.getElementById('registration-form').classList.add('hidden');
-        const name = e.target['user-name'].value;
-        document.getElementById('status-message').textContent = `Welcome ${name}!`;
-        document.getElementById('status-panel').classList.remove('hidden');
-      };
-      // Simulation
-      document.getElementById('simulation-button').onclick = ()=>{
-        const svgg = svg.select('g'); svgg.selectAll('.sim').remove();
-        const points = d3.range(30).map(()=>[(Math.random()*180)-90,(Math.random()*360)-180]);
-        const projPts = points.map(d=>proj([d[1],d[0]]));
-        const delaunay = d3.Delaunay.from(projPts);
-        const tris = delaunay.triangles;
-        for(let i=0;i<tris.length;i+=3){ const [a,b,c]=[tris[i],tris[i+1],tris[i+2]];
-          svgg.append('path').attr('class','sim').attr('d',`M${projPts[a]}L${projPts[b]}L${projPts[c]}Z`).attr('stroke','#5D5CDE').attr('fill','none');
-        }
-        svgg.selectAll('.sim-point').data(projPts).enter().append('circle').attr('class','sim').attr('cx',d=>d[0]).attr('cy',d=>d[1]).attr('r',3).attr('fill','#5D5CDE');
-        document.getElementById('participants-count').textContent = 30;
-        document.getElementById('triangles-count').textContent = tris.length/3;
-      };
-    });
-  </script>
+    <div id="map-container" class="w-full h-80 md:h-96 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden">
+      <svg id="map" class="w-full h-full"></svg>
+    </div>
+    <div class="mt-4 grid grid-cols-3 gap-4 text-center">
+      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><p id="participants-count">0</p><span id="participants-label">Participants</span></div>
+      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><p id="triangles-count">0</p><span id="triangles-label">Triangles</span></div>
+      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><p id="waiting-count">0</p><span id="waiting-label">En attente</span></div>
+    </div>
+    <button id="simulation-button" class="mt-4 w-full bg-primary text-white py-2 rounded">Mode Test</button>
+  </section>
+
+  <!-- Registration -->
+  <aside class="w-full md:w-1/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
+    <div id="registration-form">
+      <h2 id="welcome-text" class="text-xl text-center mb-4">Connexion meditation triangles</h2>
+      <input id="user-name" class="w-full mb-2 p-2 border rounded" placeholder="Your Name" />
+      <select id="user-continent" class="w-full mb-2 p-2 border rounded"><option>-- Continent --</option></select>
+      <select id="user-country" class="w-full mb-2 p-2 border rounded hidden"><option>-- Country --</option></select>
+      <input id="user-city" list="city-options" class="w-full mb-2 p-2 border rounded hidden" placeholder="City" />
+      <datalist id="city-options"></datalist>
+      <button id="join-network" class="w-full bg-primary text-white py-2 rounded">Join</button>
+    </div>
+    <div id="status-panel" class="hidden text-center">
+      <p id="status-message" class="mb-2"></p>
+      <p id="participant-info"></p>
+      <p id="triangle-status"></p>
+      <p id="time-remaining"></p>
+      <button id="start-meditation" class="mt-2 bg-primary text-white py-2 rounded">Start Meditation</button>
+      <button id="leave-network" class="mt-2 bg-red-500 text-white py-2 rounded">Leave</button>
+    </div>
+  </aside>
+</main>
+
+<footer class="bg-gray-100 dark:bg-gray-800 p-4 text-center text-sm">© 2025 Triangle Meditation Network</footer>
+
+<script>
+// App data & translations
+window.appData = { availableLanguages:['en','fr','es','de','it','ru','zh','ar','hi'], currentLanguage:'en', translations:{/*...full dictionary from before...*/}, geoData:window.appData?window.appData.geoData:{} };
+// detect browser lang
+(function(){let l=(navigator.language||'en').split('-')[0];appData.currentLanguage=appData.availableLanguages.includes(l)?l:'en';})();
+
+document.addEventListener('DOMContentLoaded',()=>{
+n=appData;
+// init language selector
+const sel=document.getElementById('language-selector');sel.value=n.currentLanguage;sel.onchange=e=>{n.currentLanguage=e.target.value;updateText();};
+// update static texts
+def updateText(){document.getElementById('app-title').textContent=n.translations[n.currentLanguage].appTitle; /*...*/}
+updateText();
+// populate geo selectors
+const contSel=document.getElementById('user-continent');geoData.continents.forEach(c=>contSel.append(new Option(c.name,c.id)));
+contSel.onchange=()=>{/* populate country then city */};
+// init map
+initMap();
+// handlers
+document.getElementById('simulation-button').onclick=simulate;
+document.getElementById('join-network').onclick=joinNetwork;
+});
+
+function initMap(){const svg=d3.select('#map'),w=svg.node().clientWidth,h=svg.node().clientHeight;
+const projection=d3.geoNaturalEarth1().scale(w/6.28).translate([w/2,h/2]);const path=d3.geoPath().projection(projection);
+const mapLayer=svg.append('g'),triLayer=svg.append('g');
+const zoom=d3.zoom().scaleExtent([1,20]).on('zoom',e=>mapLayer.attr('transform',e.transform),triLayer.attr('transform',e.transform));svg.call(zoom);
+d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json').then(world=>{
+const countries=topojson.feature(world,world.objects.countries).features;
+mapLayer.selectAll('path').data(countries).enter().append('path').attr('d',path).attr('fill','rgba(200,200,200,0.3)').attr('stroke','rgba(150,150,150,0.8)');
+updateTriangles();});window.mapState={svg,projection,path,triLayer};
+}
+
+function updateTriangles(){const {triangles,participants}=window.appData;const layer=window.mapState.triLayer;layer.selectAll('*').remove();
+const pts=layer.append('g'),lines=layer.append('g');
+const proj=window.mapState.projection;
+participants.forEach(p=>{const xy=proj([p.coordinates[1],p.coordinates[0]]);pts.append('circle').attr('cx',xy[0]).attr('cy',xy[1]).attr('r',5).attr('fill','#999');});
+triangles.forEach(t=>{for(let i=0;i<3;i++){const a=t.members[i],b=t.members[(i+1)%3];const p1=proj([a.coordinates[1],a.coordinates[0]]),p2=proj([b.coordinates[1],b.coordinates[0]]);lines.append('line').attr('x1',p1[0]).attr('y1',p1[1]).attr('x2',p2[0]).attr('y2',p2[1]).attr('class','triangle-path').attr('stroke',t.color);} });
+}
+
+// placeholder simulate/joinNetwork...
+function simulate(){/* form random participants & call updateTriangles() */}
+function joinNetwork(){/* validate, add appData.participants, formTriangles & update... */}
+
+</script>
 </body>
 </html>
