@@ -15,6 +15,7 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/topojson.v3.min.js"></script>
   <script src="https://unpkg.com/d3-delaunay@6"></script>
+  <script src="https://d3js.org/d3-zoom.v2.min.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="font-sans min-h-screen flex flex-col bg-white text-gray-800">
@@ -26,6 +27,8 @@
         <option value="fr">Français</option>
         <option value="es">Español</option>
         <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="ru">Русский</option>
       </select>
     </div>
   </header>
@@ -50,10 +53,30 @@
     <aside class="w-full md:w-1/3 bg-white p-4 rounded-lg shadow-md">
       <h2 class="text-xl font-semibold text-center" id="welcome-text">Join the Network</h2>
       <form id="registration-form" class="space-y-4">
-        <div><label for="user-name" id="user-name-label" class="block mb-1">Your Name</label><input type="text" id="user-name" class="w-full p-2 border rounded" required></div>
-        <div><label for="user-continent" id="continent-label" class="block mb-1">Continent</label><select id="user-continent" class="w-full p-2 border rounded"><option value="">-- Select --</option><option>Africa</option><option>Asia</option><option>Europe</option><option>North America</option><option>South America</option><option>Oceania</option></select></div>
-        <div><label for="user-country" id="country-label" class="block mb-1">Country</label><select id="user-country" class="w-full p-2 border rounded"><option value="">-- Select --</option></select></div>
-        <div><label for="user-city" id="city-label" class="block mb-1">City</label><input type="text" id="user-city" class="w-full p-2 border rounded"></div>
+        <div>
+          <label for="user-name" id="user-name-label" class="block mb-1">Your Name</label>
+          <input type="text" id="user-name" class="w-full p-2 border rounded" required>
+        </div>
+        <div>
+          <label for="user-continent" id="continent-label" class="block mb-1">Continent</label>
+          <select id="user-continent" class="w-full p-2 border rounded">
+            <option value="">-- Select --</option>
+            <option>Africa</option>
+            <option>Asia</option>
+            <option>Europe</option>
+            <option>North America</option>
+            <option>South America</option>
+            <option>Oceania</option>
+          </select>
+        </div>
+        <div>
+          <label for="user-country" id="country-label" class="block mb-1">Country</label>
+          <select id="user-country" class="w-full p-2 border rounded"><option value="">-- Select --</option></select>
+        </div>
+        <div>
+          <label for="user-city" id="city-label" class="block mb-1">City</label>
+          <input type="text" id="user-city" class="w-full p-2 border rounded">
+        </div>
         <button type="submit" id="join-network" class="w-full bg-primary text-white py-2 rounded">Join</button>
       </form>
       <div id="status-panel" class="hidden text-center space-y-4">
@@ -69,9 +92,24 @@
   </footer>
 
   <script>
-    // Translations
-    const dict = { en:{ 'Join the Network':'Join the Network','Your Name':'Your Name','Continent':'Continent','Country':'Country','City':'City','Join':'Join','Use My Location':'Use My Location','Start Test Mode':'Start Test Mode' }, fr:{ 'Join the Network':'Rejoignez le réseau','Your Name':'Votre nom','Continent':'Continent','Country':'Pays','City':'Ville','Join':'Rejoindre','Use My Location':'Géolocaliser','Start Test Mode':'Mode Test' } };
-    function setLang(l){ document.getElementById('language-selector').value=l; Object.keys(dict[l]).forEach(txt=>{ document.querySelectorAll('*').forEach(el=>{ if(el.textContent.trim()===txt) el.textContent=dict[l][txt]; }); }); localStorage.setItem('lang',l); }
+    // Translations including Italian & Russian
+    const dict = {
+      en:{ 'Join the Network':'Join the Network','Your Name':'Your Name','Continent':'Continent','Country':'Country','City':'City','Join':'Join','Use My Location':'Use My Location','Start Test Mode':'Start Test Mode' },
+      fr:{ 'Join the Network':'Rejoignez le réseau','Your Name':'Votre nom','Continent':'Continent','Country':'Pays','City':'Ville','Join':'Rejoindre','Use My Location':'Géolocaliser','Start Test Mode':'Mode Test' },
+      es:{ 'Join the Network':'Únete a la red','Your Name':'Tu nombre','Continent':'Continente','Country':'País','City':'Ciudad','Join':'Unirse','Use My Location':'Usar ubicación','Start Test Mode':'Modo Prueba' },
+      de:{ 'Join the Network':'Netzwerk beitreten','Your Name':'Dein Name','Continent':'Kontinent','Country':'Land','City':'Stadt','Join':'Beitreten','Use My Location':'Ort nutzen','Start Test Mode':'Testmodus' },
+      it:{ 'Join the Network':'Entra nella rete','Your Name':'Il tuo nome','Continent':'Continente','Country':'Paese','City':'Città','Join':'Entra','Use My Location':'Usa posizione','Start Test Mode':'Modalità Test' },
+      ru:{ 'Join the Network':'Присоединиться к сети','Your Name':'Ваше имя','Continent':'Континент','Country':'Страна','City':'Город','Join':'Присоединиться','Use My Location':'Моё местоположение','Start Test Mode':'Тестовый режим' }
+    };
+    function setLang(l){
+      document.getElementById('language-selector').value=l;
+      Object.keys(dict[l]).forEach(txt=>{
+        document.querySelectorAll('label,button,option,h2,h3').forEach(el=>{
+          if(el.textContent.trim()===txt) el.textContent=dict[l][txt];
+        });
+      });
+      localStorage.setItem('lang',l);
+    }
     document.addEventListener('DOMContentLoaded',()=>{
       // Language
       const sel=document.getElementById('language-selector'); const lang=localStorage.getItem('lang')||'en'; setLang(lang);
@@ -83,34 +121,68 @@
         const feats=topojson.feature(t,t.objects.countries).features;
         countries=feats.map(f=>f.properties.name).sort();
         const countrySel=document.getElementById('user-country');
-        countries.forEach(c=>{ countrySel.appendChild(new Option(c,c)); });
+        countries.forEach(c=> countrySel.appendChild(new Option(c,c)));
       });
 
       // Geolocation & Map
+      const svg = d3.select('#map');
+      const proj = d3.geoNaturalEarth1()
+        .scale(150)
+        .translate([svg.node().clientWidth/2, svg.node().clientHeight/2]);
+      const path = d3.geoPath().projection(proj);
+      const zoom = d3.zoom()
+        .scaleExtent([1, 8])
+        .on('zoom', (event) => {
+          svg.selectAll('g').attr('transform', event.transform);
+        });
+      svg.call(zoom);
+      // draw base map
+      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t => {
+        svg.append('g').selectAll('path')
+          .data(topojson.feature(t, t.objects.countries).features)
+          .enter().append('path')
+            .attr('d', path)
+            .attr('fill', '#eee')
+            .attr('stroke', '#999');
+      });
+      document.getElementById('geolocate-button').addEventListener('click', () =>
+        navigator.geolocation.getCurrentPosition(
+          p => {
+            const coords = [p.coords.latitude, p.coords.longitude];
+            const [x, y] = proj([coords[1], coords[0]]);
+            svg.transition().duration(750)
+               .call(zoom.transform, d3.zoomIdentity
+                 .translate(svg.node().clientWidth/2 - x, svg.node().clientHeight/2 - y)
+                 .scale(4)
+               );
+          },
+          () => alert('Permission denied')
+        )
+      );
       const svg=d3.select('#map'); const proj=d3.geoNaturalEarth1().scale(150).translate([svg.node().clientWidth/2,svg.node().clientHeight/2]); const path=d3.geoPath().projection(proj);
-      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t=>{ svg.append('g').selectAll('path').data(topojson.feature(t,t.objects.countries).features).enter().append('path').attr('d',path).attr('fill','#eee').attr('stroke','#999'); });
-      document.getElementById('geolocate-button').addEventListener('click',()=>navigator.geolocation.getCurrentPosition(p=>{ const [lat,lon]=[p.coords.latitude,p.coords.longitude]; const [x,y]=proj([lon,lat]); svg.transition().duration(750).call(d3.zoom().transform,d3.zoomIdentity.translate(svg.node().clientWidth/2-x,svg.node().clientHeight/2-y).scale(2)); },()=>alert('Permission denied')));
+      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t=>{
+        svg.append('g').selectAll('path').data(topojson.feature(t,t.objects.countries).features).enter().append('path').attr('d',path).attr('fill','#eee').attr('stroke','#999');
+      });
+      document.getElementById('geolocate-button').addEventListener('click',()=>navigator.geolocation.getCurrentPosition(p=>{
+        const [lat,lon]=[p.coords.latitude,p.coords.longitude]; const [x,y]=proj([lon,lat]); svg.transition().duration(750).call(d3.zoom().transform,d3.zoomIdentity.translate(svg.node().clientWidth/2-x,svg.node().clientHeight/2-y).scale(2));
+      },()=>alert('Permission denied')));
 
       // Registration
       document.getElementById('registration-form').addEventListener('submit',e=>{ e.preventDefault(); const name=e.target['user-name'].value; document.getElementById('status-message').textContent=`Welcome ${name}!`; document.getElementById('registration-form').classList.add('hidden'); document.getElementById('status-panel').classList.remove('hidden'); });
 
       // Simulation with triangles
       document.getElementById('simulation-button').addEventListener('click',()=>{
-        // clear
         svg.selectAll('.sim').remove();
         const points=d3.range(30).map(()=>[(Math.random()*180)-90,(Math.random()*360)-180]);
         const projected=points.map(d=>proj([d[1],d[0]]));
-        // Delaunay
         const delaunay=d3.Delaunay.from(projected);
-        const triangles=delaunay.triangles;
-        // draw lines
-        for(let i=0;i<triangles.length;i+=3){ const [a,b,c]=[triangles[i],triangles[i+1],triangles[i+2]];
+        const tris=delaunay.triangles;
+        for(let i=0;i<tris.length;i+=3){ const [a,b,c]=[tris[i],tris[i+1],tris[i+2]];
           svg.append('path').attr('class','sim').attr('d',`M${projected[a]}L${projected[b]}L${projected[c]}Z`).attr('fill','none').attr('stroke','#5D5CDE').attr('stroke-width',1);
         }
-        // draw points
         svg.selectAll('.sim-point').data(projected).enter().append('circle').attr('class','sim').attr('cx',d=>d[0]).attr('cy',d=>d[1]).attr('r',3).attr('fill','#5D5CDE');
         document.getElementById('participants-count').textContent=30;
-        document.getElementById('triangles-count').textContent=(triangles.length/3);
+        document.getElementById('triangles-count').textContent=(tris.length/3);
       });
     });
   </script>
