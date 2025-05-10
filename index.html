@@ -9,238 +9,108 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#5D5CDE' } } } };
+    tailwind.config = { theme: { extend: { colors: { primary: '#5D5CDE' } } } };
   </script>
-  <!-- D3 & TopoJSON -->
+  <!-- D3, TopoJSON & D3-Delaunay -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/topojson.v3.min.js"></script>
+  <script src="https://unpkg.com/d3-delaunay@6"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="font-sans min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+<body class="font-sans min-h-screen flex flex-col bg-white text-gray-800">
   <header class="bg-primary text-white p-4 shadow-md">
     <div class="container mx-auto flex justify-between items-center">
       <h1 class="text-2xl font-bold" id="app-title">Triangle Meditation Network</h1>
-      <div class="flex items-center space-x-4">
-        <button id="theme-toggle" aria-label="Toggle Dark Mode" class="p-2 rounded hover:bg-opacity-75">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8-9h1M3 12H2m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-13.414l.707.707M17.657 17.657l.707.707" />
-          </svg>
-        </button>
-        <select id="language-selector" class="bg-white text-gray-800 rounded px-3 py-1 text-base">
-          <option value="en">English</option>
-          <option value="fr">Français</option>
-          <option value="es">Español</option>
-          <option value="de">Deutsch</option>
-          <option value="zh">中文</option>
-          <option value="ru">Русский</option>
-          <option value="ar">العربية</option>
-          <option value="hi">हिन्दी</option>
-        </select>
-      </div>
+      <select id="language-selector" class="bg-white text-gray-800 rounded px-3 py-1 text-base">
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+        <option value="de">Deutsch</option>
+      </select>
     </div>
   </header>
 
   <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6">
     <!-- Map & Stats -->
-    <section class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+    <section class="w-full md:w-2/3 bg-white p-4 rounded-lg shadow-md">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold" id="active-triangles-title">Active Triangles</h2>
-        <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded hover:bg-opacity-90 text-sm">Use My Location</button>
+        <button id="geolocate-button" class="bg-primary text-white px-3 py-1 rounded text-sm">Use My Location</button>
       </div>
-      <div id="map-container" class="w-full h-80 md:h-96 relative"><svg id="map" class="w-full h-full"></svg></div>
+      <div id="map-container" class="w-full h-80 md:h-96 relative bg-gray-100"><svg id="map" class="w-full h-full"></svg></div>
       <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 class="font-semibold" id="participants-label">Participants</h3><p id="participants-count" class="text-xl">0</p></div>
-        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 class="font-semibold" id="triangles-label">Triangles</h3><p id="triangles-count" class="text-xl">0</p></div>
-        <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 class="font-semibold" id="waiting-label">Waiting</h3><p id="waiting-count" class="text-xl">0</p></div>
+        <div class="bg-gray-100 p-2 rounded"><h3 class="font-semibold" id="participants-label">Participants</h3><p id="participants-count" class="text-xl">0</p></div>
+        <div class="bg-gray-100 p-2 rounded"><h3 class="font-semibold" id="triangles-label">Triangles</h3><p id="triangles-count" class="text-xl">0</p></div>
+        <div class="bg-gray-100 p-2 rounded"><h3 class="font-semibold" id="waiting-label">Waiting</h3><p id="waiting-count" class="text-xl">0</p></div>
       </div>
-      <button id="simulation-button" class="mt-4 w-full bg-primary hover:bg-opacity-90 text-white py-2 rounded">Start 30-Person Simulation</button>
+      <button id="simulation-button" class="mt-4 w-full bg-primary text-white py-2 rounded">Start Test Mode</button>
     </section>
 
     <!-- Registration & Status -->
-    <aside class="w-full md:w-1/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-      <div id="registration-form" class="space-y-4">
-        <h2 class="text-xl font-semibold text-center" id="welcome-text">Join the Network</h2>
-        <form class="space-y-4">
-          <div><label for="user-name" id="user-name-label" class="block mb-1">Your Name</label><input type="text" id="user-name" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700" required></div>
-          <div><label for="user-continent" id="continent-label" class="block mb-1">Continent</label><select id="user-continent" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700"><option value="">-- Select --</option></select></div>
-          <div id="country-container" class="hidden"><label for="user-country" id="country-label" class="block mb-1">Country</label><select id="user-country" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700"><option value="">-- Select --</option></select></div>
-          <div id="city-container" class="hidden"><label for="user-city" id="city-label" class="block mb-1">City</label><input type="text" id="user-city" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700" required><p id="city-help" class="text-sm text-gray-500">If not in DB, we'll use country center coords.</p></div>
-          <button type="submit" id="join-network" class="w-full bg-primary text-white py-2 rounded">Join Network</button>
-        </form>
-      </div>
-      <div id="status-panel" class="hidden space-y-4 text-center">
+    <aside class="w-full md:w-1/3 bg-white p-4 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold text-center" id="welcome-text">Join the Network</h2>
+      <form id="registration-form" class="space-y-4">
+        <div><label for="user-name" id="user-name-label" class="block mb-1">Your Name</label><input type="text" id="user-name" class="w-full p-2 border rounded" required></div>
+        <div><label for="user-continent" id="continent-label" class="block mb-1">Continent</label><select id="user-continent" class="w-full p-2 border rounded"><option value="">-- Select --</option><option>Africa</option><option>Asia</option><option>Europe</option><option>North America</option><option>South America</option><option>Oceania</option></select></div>
+        <div><label for="user-country" id="country-label" class="block mb-1">Country</label><select id="user-country" class="w-full p-2 border rounded"><option value="">-- Select --</option></select></div>
+        <div><label for="user-city" id="city-label" class="block mb-1">City</label><input type="text" id="user-city" class="w-full p-2 border rounded"></div>
+        <button type="submit" id="join-network" class="w-full bg-primary text-white py-2 rounded">Join</button>
+      </form>
+      <div id="status-panel" class="hidden text-center space-y-4">
         <h3 id="status-title" class="text-lg font-semibold">Network Status</h3>
-        <p id="status-message">You have joined the meditation network.</p>
-        <p id="participant-info">Coords: [0, 0]</p>
-        <p id="triangle-status">Waiting for triangle...</p>
-        <div id="position-timer" class="text-sm text-gray-500">30:00</div>
-        <div id="meditation-timer-container" class="hidden"><div id="meditation-timer" class="text-4xl font-bold">20:00</div><button id="start-meditation" class="w-full bg-primary text-white py-2 rounded">Start Meditation</button></div>
+        <p id="status-message"></p>
         <button id="leave-network" class="w-full bg-red-500 text-white py-2 rounded">Leave Network</button>
       </div>
     </aside>
   </main>
 
-  <footer class="bg-gray-100 dark:bg-gray-800 p-4 text-center text-sm text-gray-600 dark:text-gray-400">
+  <footer class="bg-gray-100 p-4 text-center text-sm text-gray-600">
     <p>© 2025 Triangle Meditation Network · <a href="https://github.com/your-username/triangles-meditation" class="text-primary hover:underline" target="_blank">GitHub</a></p>
   </footer>
 
-  <!-- Geolocation Modal -->
-  <div id="geolocation-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center"><div class="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm mx-4"><h3 class="text-lg font-bold mb-2">Location Permission Required</h3><p class="mb-4">Please allow location access to use this feature.</p><button id="close-geolocation-modal" class="bg-primary text-white px-4 py-2 rounded">OK</button></div></div>
-
-  <!-- Inline Scripts -->
   <script>
-    // Data for continents and countries (sample)
-    const data = {
-      'Africa': ['Nigeria','Egypt','South Africa'],
-      'Europe': ['France','Germany','Spain'],
-      'Asia': ['China','India','Japan'],
-      'North America': ['United States','Canada','Mexico'],
-      'South America': ['Brazil','Argentina','Chile'],
-      'Oceania': ['Australia','New Zealand'],
-      'Antarctica': []
-    };
-    
     // Translations
-    const translations = {
-      'app-title':     { en:'Triangle Meditation Network', fr:'Réseau de Méditation Triangle' },
-      'welcome-text':  { en:'Join the Network', fr:'Rejoignez le réseau' },
-      'user-name-label': { en:'Your Name', fr:'Votre nom' },
-      'continent-label': { en:'Continent', fr:'Continent' },
-      'country-label':   { en:'Country', fr:'Pays' },
-      'city-label':      { en:'City', fr:'Ville' },
-      'join-network':    { en:'Join Network', fr:'Rejoindre' }
-    };
-    function setLanguage(lang) {
-      Object.entries(translations).forEach(([id,dict]) => {
-        const el = document.getElementById(id);
-        if (!el || !dict[lang]) return;
-        el.textContent = dict[lang];
-      });
-    }
-    
-    // Storage
-    function saveLang(l){ localStorage.setItem('tmn_lang', l); }
-    function loadLang(){ return localStorage.getItem('tmn_lang') || 'en'; }
-    function saveUser(u){ localStorage.setItem('tmn_user', JSON.stringify(u)); }
-    function loadUser(){ const v = localStorage.getItem('tmn_user'); return v? JSON.parse(v): null; }
-    
-    // Geolocation
-    function getCurrentPosition(){
-      return new Promise((res,rej) => {
-        if (!navigator.geolocation) return rej('Unsupported');
-        navigator.geolocation.getCurrentPosition(
-          p => res([p.coords.latitude, p.coords.longitude]),
-          () => rej('Denied')
-        );
-      });
-    }
-    
-    // D3 Map
-    let svg, projection, path;
-    function initMap(){
-      svg = d3.select('#map');
-      projection = d3.geoNaturalEarth1()
-        .scale(150)
-        .translate([svg.node().clientWidth/2, svg.node().clientHeight/2]);
-      path = d3.geoPath().projection(projection);
-      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t => {
-        const countries = topojson.feature(t, t.objects.countries);
-        svg.append('g')
-          .selectAll('path')
-          .data(countries.features)
-          .enter().append('path')
-            .attr('d', path)
-            .attr('fill', '#ccc')
-            .attr('stroke', '#333');
-      });
-    }
-    function centerOn(coords){
-      const [lat,lon] = coords;
-      const [x,y] = projection([lon,lat]);
-      svg.transition().duration(750)
-         .call(d3.zoom().transform,
-           d3.zoomIdentity.translate(svg.node().clientWidth/2 - x,
-                                     svg.node().clientHeight/2 - y)
-                           .scale(2)
-         );
-    }
-    
-    // Simulation
-    function startSimulation(){
-      const points = d3.range(30).map(() => ({ lat:(Math.random()*180)-90, lon:(Math.random()*360)-180 }));
-      svg.selectAll('.sim-point').remove();
-      svg.selectAll('.sim-point')
-        .data(points)
-        .enter().append('circle')
-          .attr('class','sim-point')
-          .attr('r',3)
-          .attr('fill','#5D5CDE')
-          .attr('transform', d => {
-            const [x,y] = projection([d.lon,d.lat]);
-            return `translate(${x},${y})`;
-          });
-    }
-    
-    document.addEventListener('DOMContentLoaded', () => {
+    const dict = { en:{ 'Join the Network':'Join the Network','Your Name':'Your Name','Continent':'Continent','Country':'Country','City':'City','Join':'Join','Use My Location':'Use My Location','Start Test Mode':'Start Test Mode' }, fr:{ 'Join the Network':'Rejoignez le réseau','Your Name':'Votre nom','Continent':'Continent','Country':'Pays','City':'Ville','Join':'Rejoindre','Use My Location':'Géolocaliser','Start Test Mode':'Mode Test' } };
+    function setLang(l){ document.getElementById('language-selector').value=l; Object.keys(dict[l]).forEach(txt=>{ document.querySelectorAll('*').forEach(el=>{ if(el.textContent.trim()===txt) el.textContent=dict[l][txt]; }); }); localStorage.setItem('lang',l); }
+    document.addEventListener('DOMContentLoaded',()=>{
       // Language
-      const selLang = document.getElementById('language-selector');
-      const lang = loadLang();
-      selLang.value = lang;
-      setLanguage(lang);
-      selLang.addEventListener('change', e => { setLanguage(e.target.value); saveLang(e.target.value); });
+      const sel=document.getElementById('language-selector'); const lang=localStorage.getItem('lang')||'en'; setLang(lang);
+      sel.addEventListener('change',e=>setLang(e.target.value));
 
-      // Theme toggle
-      document.getElementById('theme-toggle')
-              .addEventListener('click', () => document.body.classList.toggle('dark'));
-
-      // Populate continents
-      const contSel = document.getElementById('user-continent');
-      Object.keys(data).forEach(c => {
-        const opt = document.createElement('option'); opt.value = c; opt.textContent = c;
-        contSel.appendChild(opt);
-      });
-      contSel.addEventListener('change', () => {
-        const cc = contSel.value;
-        const countries = data[cc] || [];
-        const countrySel = document.getElementById('user-country');
-        countrySel.innerHTML = '<option value="">-- Select --</option>';
-        countries.forEach(c => {
-          const o = document.createElement('option'); o.value = c; o.textContent = c;
-          countrySel.appendChild(o);
-        });
-        document.getElementById('country-container').classList.toggle('hidden', countries.length===0);
-        document.getElementById('city-container').classList.add('hidden');
+      // Countries list from topojson
+      let countries=[];
+      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t=>{
+        const feats=topojson.feature(t,t.objects.countries).features;
+        countries=feats.map(f=>f.properties.name).sort();
+        const countrySel=document.getElementById('user-country');
+        countries.forEach(c=>{ countrySel.appendChild(new Option(c,c)); });
       });
 
-      document.getElementById('user-country')
-              .addEventListener('change', e => document.getElementById('city-container').classList.toggle('hidden', !e.target.value));
-
-      // Map init & geolocate
-      initMap();
-      document.getElementById('geolocate-button')
-              .addEventListener('click', () => getCurrentPosition().then(centerOn).catch(() => document.getElementById('geolocation-modal').classList.remove('hidden')));
-      document.getElementById('close-geolocation-modal')
-              .addEventListener('click', () => document.getElementById('geolocation-modal').classList.add('hidden'));
-
-      // Simulation
-      document.getElementById('simulation-button')
-              .addEventListener('click', startSimulation);
+      // Geolocation & Map
+      const svg=d3.select('#map'); const proj=d3.geoNaturalEarth1().scale(150).translate([svg.node().clientWidth/2,svg.node().clientHeight/2]); const path=d3.geoPath().projection(proj);
+      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t=>{ svg.append('g').selectAll('path').data(topojson.feature(t,t.objects.countries).features).enter().append('path').attr('d',path).attr('fill','#eee').attr('stroke','#999'); });
+      document.getElementById('geolocate-button').addEventListener('click',()=>navigator.geolocation.getCurrentPosition(p=>{ const [lat,lon]=[p.coords.latitude,p.coords.longitude]; const [x,y]=proj([lon,lat]); svg.transition().duration(750).call(d3.zoom().transform,d3.zoomIdentity.translate(svg.node().clientWidth/2-x,svg.node().clientHeight/2-y).scale(2)); },()=>alert('Permission denied')));
 
       // Registration
-      document.querySelector('#registration-form form')
-              .addEventListener('submit', e => {
-        e.preventDefault();
-        const form = e.target;
-        const user = {
-          name: form['user-name'].value,
-          continent: form['user-continent'].value,
-          country: form['user-country'].value || null,
-          city: form['user-city'].value || ''
-        };
-        saveUser(user);
-        document.getElementById('registration-form').classList.add('hidden');
-        document.getElementById('status-panel').classList.remove('hidden');
-        document.getElementById('status-message').textContent = `Bienvenu·e ${user.name}!`;
+      document.getElementById('registration-form').addEventListener('submit',e=>{ e.preventDefault(); const name=e.target['user-name'].value; document.getElementById('status-message').textContent=`Welcome ${name}!`; document.getElementById('registration-form').classList.add('hidden'); document.getElementById('status-panel').classList.remove('hidden'); });
+
+      // Simulation with triangles
+      document.getElementById('simulation-button').addEventListener('click',()=>{
+        // clear
+        svg.selectAll('.sim').remove();
+        const points=d3.range(30).map(()=>[(Math.random()*180)-90,(Math.random()*360)-180]);
+        const projected=points.map(d=>proj([d[1],d[0]]));
+        // Delaunay
+        const delaunay=d3.Delaunay.from(projected);
+        const triangles=delaunay.triangles;
+        // draw lines
+        for(let i=0;i<triangles.length;i+=3){ const [a,b,c]=[triangles[i],triangles[i+1],triangles[i+2]];
+          svg.append('path').attr('class','sim').attr('d',`M${projected[a]}L${projected[b]}L${projected[c]}Z`).attr('fill','none').attr('stroke','#5D5CDE').attr('stroke-width',1);
+        }
+        // draw points
+        svg.selectAll('.sim-point').data(projected).enter().append('circle').attr('class','sim').attr('cx',d=>d[0]).attr('cy',d=>d[1]).attr('r',3).attr('fill','#5D5CDE');
+        document.getElementById('participants-count').textContent=30;
+        document.getElementById('triangles-count').textContent=(triangles.length/3);
       });
     });
   </script>
