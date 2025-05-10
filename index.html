@@ -21,9 +21,9 @@
       font-family:sans-serif; display:flex; flex-direction:column; gap:0.5rem;
     }
     .group-list { display:flex; flex-wrap:wrap; gap:0.3rem; margin-bottom:0.5rem; }
-    .group-list button,
-    #controls button,
-    #controls select { padding:0.4rem 0.8rem; font-size:0.9rem; }
+    .group-list button, #controls button, #controls select {
+      padding:0.4rem 0.8rem; font-size:0.9rem;
+    }
     #controls label { display:flex; align-items:center; gap:0.5rem; }
   </style>
 </head>
@@ -51,188 +51,170 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // 1) CONFIG FIREBASE
-    const firebaseConfig = {
-      apiKey: "AIzaSyBaMcVHdo2yWYCO0K19iLQkWg1W3_zxy_8",
-      authDomain: "triangles-meditation.firebaseapp.com",
-      projectId: "triangles-meditation",
-      storageBucket: "triangles-meditation.appspot.com",
-      messagingSenderId: "501789370541",
-      appId: "1:501789370541:web:11dd620095e401503a7e24",
-      measurementId: "G-QPWKZZN6T1"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1) CONFIG FIREBASE
+      const firebaseConfig = {
+        apiKey: "AIzaSyBaMcVHdo2yWYCO0K19iLQkWg1W3_zxy_8",
+        authDomain: "triangles-meditation.firebaseapp.com",
+        projectId: "triangles-meditation",
+        storageBucket: "triangles-meditation.appspot.com",
+        messagingSenderId: "501789370541",
+        appId: "1:501789370541:web:11dd620095e401503a7e24",
+        measurementId: "G-QPWKZZN6T1"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
 
-    // 2) INIT LEAFLET
-    const map = L.map('map').setView([0,0],2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'© OpenStreetMap contributors'
-    }).addTo(map);
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-      iconUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-      shadowUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
-    });
+      // 2) INIT LEAFLET
+      const map = L.map('map').setView([0,0],2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© OpenStreetMap contributors'
+      }).addTo(map);
 
-    // 3) ÉTAT & I18N
-    let markers = [], selected = '', lang = 'fr';
-    const i18n = {
-      fr:{triangle:'Triangle', add:'Je médite !', simulate:'Simuler', new:'Nouveau', lang:'Langue', popup:'Triangle', alertAdd:'Point ajouté : '},
-      en:{triangle:'Triangle', add:'I meditate!', simulate:'Simulate', new:'New', lang:'Language', popup:'Triangle', alertAdd:'Added point: '}
-    };
+      // fix icons
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        iconUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        shadowUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
+      });
 
-    // 4) DOM REFS
-    const groupList   = document.getElementById('groupList');
-    const newBtn      = document.getElementById('newBtn');
-    const addBtn      = document.getElementById('addBtn');
-    const simBtn      = document.getElementById('simulateBtn');
-    const langSelect  = document.getElementById('langSelect');
-    const lblTriangle = document.getElementById('lbl-triangle');
-    const lblLang     = document.getElementById('lbl-lang');
+      // 3) ÉTAT & i18n
+      let markers = [], selected = '', lang = 'fr';
+      const i18n = {
+        fr:{triangle:'Triangle',add:'Je médite !',simulate:'Simuler',new:'Nouveau',lang:'Langue',popup:'Triangle',alertAdd:'Point ajouté : '},
+        en:{triangle:'Triangle',add:'I meditate!',simulate:'Simulate',new:'New',lang:'Language',popup:'Triangle',alertAdd:'Added point: '}
+      };
 
-    // 5) POPULER LANGUES
-    Object.keys(i18n).forEach(code => {
-      const opt = document.createElement('option');
-      opt.value = code; opt.textContent = code.toUpperCase();
-      langSelect.appendChild(opt);
-    });
-    langSelect.value = lang;
+      // 4) DOM refs
+      const groupList = document.getElementById('groupList');
+      const newBtn    = document.getElementById('newBtn');
+      const addBtn    = document.getElementById('addBtn');
+      const simBtn    = document.getElementById('simulateBtn');
+      const langSelect= document.getElementById('langSelect');
+      const lblTri    = document.getElementById('lbl-triangle');
+      const lblLang   = document.getElementById('lbl-lang');
 
-    // 6) FONCTIONS DE RENDER
-    function translateUI() {
-      lblTriangle.textContent = i18n[lang].triangle + ' :';
-      newBtn.textContent      = i18n[lang].new;
-      addBtn.textContent      = i18n[lang].add;
-      simBtn.textContent      = i18n[lang].simulate;
-      lblLang.textContent     = i18n[lang].lang + ' :';
-    }
+      // 5) populate languages
+      Object.keys(i18n).forEach(c => {
+        const o = document.createElement('option');
+        o.value=c; o.textContent=c.toUpperCase();
+        langSelect.appendChild(o);
+      });
+      langSelect.value = lang;
 
-    function renderMarkers() {
-      map.eachLayer(l => {
-        if (l instanceof L.Marker || l instanceof L.CircleMarker) {
-          map.removeLayer(l);
+      // 6) renderers
+      function translateUI(){
+        lblTri.textContent = i18n[lang].triangle+' :';
+        newBtn.textContent = i18n[lang].new;
+        addBtn.textContent = i18n[lang].add;
+        simBtn.textContent = i18n[lang].simulate;
+        lblLang.textContent= i18n[lang].lang+' :';
+      }
+
+      function renderMarkers(){
+        map.eachLayer(l=>{
+          if(l instanceof L.Marker || l instanceof L.CircleMarker) map.removeLayer(l);
+        });
+        markers.forEach(m=>{
+          const sel = m.triangle_id===selected;
+          const mk = sel
+            ? L.circleMarker([m.lat,m.lng],{radius:8,color:'#f00',fillOpacity:0.6})
+            : L.marker([m.lat,m.lng]);
+          mk.bindPopup((sel?'▶ ':'')+i18n[lang].popup+m.triangle_id);
+          mk.addTo(map);
+        });
+      }
+
+      function renderTriangles(){
+        // clear old
+        window._tris&&window._tris.forEach(o=>map.removeLayer(o));
+        window._tris=[];
+
+        const groups = markers.reduce((a,m)=>{
+          (a[m.triangle_id]||(a[m.triangle_id]=[])).push([m.lat,m.lng]);
+          return a;
+        },{});
+
+        Object.entries(groups).forEach(([id,pts])=>{
+          if(pts.length===3){
+            const p=L.polygon(pts,{color:'#006',weight:2,fillColor:'#06f',fillOpacity:0.2}).addTo(map);
+            window._tris.push(p);
+          } else if(pts.length===2){
+            const l=L.polyline(pts,{color:'#a00',weight:2,dashArray:'5,5'}).addTo(map);
+            window._tris.push(l);
+          }
+        });
+      }
+
+      function renderGroups(){
+        groupList.innerHTML='';
+        newBtn.onclick=()=>{selected='';updateAll()};
+        const cnt = markers.reduce((a,m)=>{a[m.triangle_id]=(a[m.triangle_id]||0)+1;return a;}, {});
+        Object.entries(cnt).forEach(([id,c])=>{
+          const b=document.createElement('button');
+          b.textContent=`${id} (${c})`;
+          b.onclick=()=>{selected=id;updateAll()};
+          if(id===selected) b.style.background='#ddd';
+          groupList.appendChild(b);
+        });
+      }
+
+      function updateAll(){
+        translateUI();
+        renderGroups();
+        renderMarkers();
+        renderTriangles();
+      }
+
+      // 7) realtime
+      db.collection('markers').orderBy('created_at')
+        .onSnapshot(snap=>{
+          markers=snap.docs.map(d=>d.data());
+          updateAll();
+        });
+
+      // 8) add point
+      addBtn.onclick=()=>navigator.geolocation.getCurrentPosition(({coords})=>{
+        const tri = selected||crypto.randomUUID().slice(0,8);
+        db.collection('markers').add({
+          triangle_id:tri,
+          lat:coords.latitude,
+          lng:coords.longitude,
+          created_at:Date.now()
+        });
+        alert(i18n[lang].alertAdd+tri);
+      });
+
+      // 9) simulate
+      simBtn.onclick=async()=>{
+        // delete all
+        const snap=await db.collection('markers').get();
+        const b=db.batch();
+        snap.docs.forEach(d=>b.delete(d.ref));
+        await b.commit();
+        // generate
+        for(let t=0;t<10;t++){
+          const id=crypto.randomUUID().slice(0,6);
+          const lat0=Math.random()*135-60;
+          const lng0=Math.random()*360-180;
+          for(let i=0;i<3;i++){
+            db.collection('markers').add({
+              triangle_id:id,
+              lat:lat0+(Math.random()-0.5)*4,
+              lng:lng0+(Math.random()-0.5)*4,
+              created_at:Date.now()
+            });
+          }
         }
-      });
-      markers.forEach(m => {
-        const isSel = m.triangle_id === selected;
-        const mk = isSel
-          ? L.circleMarker([m.lat,m.lng],{radius:8,color:'#f00',fillOpacity:0.6})
-          : L.marker([m.lat,m.lng]);
-        mk.bindPopup((isSel?'▶ ':'') + i18n[lang].popup + m.triangle_id);
-        mk.addTo(map);
-      });
-    }
+      };
 
-    // 7) TRIANGLES STRUCTURÉS
-    let triangleLayers = {};
-    function renderTriangles() {
-      // supprime anciens
-      Object.values(triangleLayers).forEach(t=>map.removeLayer(t));
-      triangleLayers = {};
+      // 10) lang change
+      langSelect.onchange=e=>{lang=e.target.value;updateAll()};
 
-      // regroupe
-      const groups = markers.reduce((acc,m) => {
-        (acc[m.triangle_id]||(acc[m.triangle_id]=[])).push([m.lat,m.lng]);
-        return acc;
-      }, {});
-
-      // dessine
-      Object.entries(groups).forEach(([tid, pts]) => {
-        if (pts.length === 3) {
-          // triangle complet
-          const poly = L.polygon(pts, {
-            color: '#006', weight: 2, fillColor: '#06f', fillOpacity: 0.2
-          }).addTo(map);
-          triangleLayers[tid] = poly;
-        } else if (pts.length === 2) {
-          // ligne pointillée
-          const line = L.polyline(pts, {
-            color: '#a00', weight: 2, dashArray: '5,5'
-          }).addTo(map);
-          triangleLayers[tid] = line;
-        }
-        // 1 seul point → reste marqueur
-      });
-    }
-
-    // 8) RAFRAÎCHIR TOUT
-    function updateAll() {
-      translateUI();
-      renderGroups();
-      renderMarkers();
-      renderTriangles();
-    }
-
-    function renderGroups() {
-      groupList.innerHTML = '';
-      newBtn.onclick = () => { selected = ''; updateAll(); };
-      const counts = markers.reduce((a,m) => {
-        a[m.triangle_id] = (a[m.triangle_id]||0)+1; return a;
-      }, {});
-      Object.entries(counts).forEach(([id,c]) => {
-        const b = document.createElement('button');
-        b.textContent = `${id} (${c})`;
-        b.onclick = () => { selected = id; updateAll(); };
-        if (id === selected) b.style.background = '#ddd';
-        groupList.appendChild(b);
-      });
-    }
-
-    // 9) FIRESTORE REALTIME
-    db.collection('markers').orderBy('created_at')
-      .onSnapshot(snap => {
-        markers = snap.docs.map(d => d.data());
-        updateAll();
-      });
-
-    // 10) AJOUTER POINT
-    addBtn.onclick = () => navigator.geolocation.getCurrentPosition(({coords}) => {
-      const tri = selected || crypto.randomUUID().slice(0,8);
-      db.collection('markers').add({
-        triangle_id: tri,
-        lat: coords.latitude,
-        lng: coords.longitude,
-        created_at: Date.now()
-      });
-      alert(i18n[lang].alertAdd + tri);
+      // init
+      updateAll();
     });
-
-    // 11) SIMULER – correction
-simBtn.onclick = async () => {
-  // 1) Supprime tout d'abord
-  await db.collection('markers').delete().neq('triangle_id', ''); // supprime toutes les lignes
-
-  // 2) Génère 10 triangles de 3 points chacun
-  const numTriangles = 10;
-  for (let t = 0; t < numTriangles; t++) {
-    const triId = crypto.randomUUID().slice(0, 6);
-    // Choix d'un centre terrestre approximatif
-    const centerLat = Math.random() * (75 + 60) - 60;   // entre -60° et +75°
-    const centerLng = Math.random() * 360 - 180;        // entre -180° et +180°
-    for (let i = 0; i < 3; i++) {
-      // Légère dispersion autour du centre (±2°)
-      const lat = centerLat + (Math.random() - 0.5) * 4;
-      const lng = centerLng + (Math.random() - 0.5) * 4;
-      await db.collection('markers').add({
-        triangle_id: triId,
-        lat,
-        lng,
-        created_at: Date.now()
-      });
-    }
-  }
-  // Laisse le realtime Firestore rafraîchir la carte et les triangles
-    };
-
-    // 12) LANGUE
-    langSelect.onchange = e => { lang = e.target.value; updateAll(); };
-
-    // Init
-    updateAll();
-  });
   </script>
 </body>
 </html>
