@@ -41,7 +41,6 @@
   </header>
 
   <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6">
-
     <!-- Map & Stats -->
     <section class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
       <div class="flex justify-between items-center mb-4">
@@ -90,32 +89,160 @@
 
   <!-- Inline Scripts -->
   <script>
-  // Translations
-  const translations = { 'app-title':{en:'Triangle Meditation Network',fr:'Réseau de Méditation Triangle'}, 'welcome-text':{en:'Join the Network',fr:'Rejoignez le réseau'}, 'user-name-label':{en:'Your Name',fr:'Votre nom'}, 'continent-label':{en:'Continent',fr:'Continent'}, 'country-label':{en:'Country',fr:'Pays'}, 'city-label':{en:'City',fr:'Ville'}, 'join-network':{en:'Join Network',fr:'Rejoindre'} };
-  function setLanguage(lang){ Object.entries(translations).forEach(([id,dict])=>{ const el=document.getElementById(id); if(el&&dict[lang])el.textContent=dict[lang]; }); }
-  // Storage
-  function saveLang(l){localStorage.tmn_lang=l;} function loadLang(){return localStorage.tmn_lang||'en';} function saveUser(u){localStorage.tmn_user=JSON.stringify(u);} function loadUser(){return JSON.parse(localStorage.tmn_user||null);}  
-  // Geolocation
-  function getCurrentPosition(){return new Promise((res,rej)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>res([p.coords.latitude,p.coords.longitude]),()=>rej()):rej());}
-  // Map
-  let projection, path, svg;
-  function initMap(){svg=d3.select('#map');projection=d3.geoNaturalEarth1().scale(150).translate([svg.node().clientWidth/2,svg.node().clientHeight/2]);path=d3.geoPath().projection(projection);d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t=>{const f=topojson.feature(t,t.objects.countries);svg.append('g').selectAll('path').data(f.features).enter().append('path').attr('d',path).attr('fill','#ccc').attr('stroke','#333');});}
-  function centerOn(coords){const [lat,lon]=coords; const [x,y]=projection([lon,lat]);svg.transition().duration(750).call(d3.zoom().transform,d3.zoomIdentity.translate(svg.node().clientWidth/2-x,svg.node().clientHeight/2-y).scale(2));}
-  // Simulation
-  function startSimulation(){const data=d3.range(30).map(()=>({lat:(Math.random()*180)-90,lon:(Math.random()*360)-180}));svg.selectAll('.sim-point').remove();svg.selectAll('.sim-point').data(data).enter().append('circle').attr('class','sim-point').attr('r',3).attr('fill','#5D5CDE').attr('transform',d=>{const p=projection([d.lon,d.lat]);return `translate(${p})`;});}
-  document.addEventListener('DOMContentLoaded',()=>{
-    // Language
-    const lang=loadLang();document.getElementById('language-selector').value=lang;setLanguage(lang);document.getElementById('language-selector').addEventListener('change',e=>{setLanguage(e.target.value);saveLang(e.target.value);});
-    // Dark mode
-    document.getElementById('theme-toggle').addEventListener('click',()=>document.body.classList.toggle('dark'));
-    // Map init
-    initMap(); document.getElementById('geolocate-button').addEventListener('click',()=>getCurrentPosition().then(centerOn).catch(()=>document.getElementById('geolocation-modal').classList.remove('hidden')));
-    document.getElementById('close-geolocation-modal').addEventListener('click',()=>document.getElementById('geolocation-modal').classList.add('hidden'));
+    // Data for continents and countries (sample)
+    const data = {
+      'Africa': ['Nigeria','Egypt','South Africa'],
+      'Europe': ['France','Germany','Spain'],
+      'Asia': ['China','India','Japan'],
+      'North America': ['United States','Canada','Mexico'],
+      'South America': ['Brazil','Argentina','Chile'],
+      'Oceania': ['Australia','New Zealand'],
+      'Antarctica': []
+    };
+    
+    // Translations
+    const translations = {
+      'app-title':     { en:'Triangle Meditation Network', fr:'Réseau de Méditation Triangle' },
+      'welcome-text':  { en:'Join the Network', fr:'Rejoignez le réseau' },
+      'user-name-label': { en:'Your Name', fr:'Votre nom' },
+      'continent-label': { en:'Continent', fr:'Continent' },
+      'country-label':   { en:'Country', fr:'Pays' },
+      'city-label':      { en:'City', fr:'Ville' },
+      'join-network':    { en:'Join Network', fr:'Rejoindre' }
+    };
+    function setLanguage(lang) {
+      Object.entries(translations).forEach(([id,dict]) => {
+        const el = document.getElementById(id);
+        if (!el || !dict[lang]) return;
+        el.textContent = dict[lang];
+      });
+    }
+    
+    // Storage
+    function saveLang(l){ localStorage.setItem('tmn_lang', l); }
+    function loadLang(){ return localStorage.getItem('tmn_lang') || 'en'; }
+    function saveUser(u){ localStorage.setItem('tmn_user', JSON.stringify(u)); }
+    function loadUser(){ const v = localStorage.getItem('tmn_user'); return v? JSON.parse(v): null; }
+    
+    // Geolocation
+    function getCurrentPosition(){
+      return new Promise((res,rej) => {
+        if (!navigator.geolocation) return rej('Unsupported');
+        navigator.geolocation.getCurrentPosition(
+          p => res([p.coords.latitude, p.coords.longitude]),
+          () => rej('Denied')
+        );
+      });
+    }
+    
+    // D3 Map
+    let svg, projection, path;
+    function initMap(){
+      svg = d3.select('#map');
+      projection = d3.geoNaturalEarth1()
+        .scale(150)
+        .translate([svg.node().clientWidth/2, svg.node().clientHeight/2]);
+      path = d3.geoPath().projection(projection);
+      d3.json('https://unpkg.com/world-atlas@2.0.2/world/110m.json').then(t => {
+        const countries = topojson.feature(t, t.objects.countries);
+        svg.append('g')
+          .selectAll('path')
+          .data(countries.features)
+          .enter().append('path')
+            .attr('d', path)
+            .attr('fill', '#ccc')
+            .attr('stroke', '#333');
+      });
+    }
+    function centerOn(coords){
+      const [lat,lon] = coords;
+      const [x,y] = projection([lon,lat]);
+      svg.transition().duration(750)
+         .call(d3.zoom().transform,
+           d3.zoomIdentity.translate(svg.node().clientWidth/2 - x,
+                                     svg.node().clientHeight/2 - y)
+                           .scale(2)
+         );
+    }
+    
     // Simulation
-    document.getElementById('simulation-button').addEventListener('click',startSimulation);
-    // Registration
-    document.querySelector('#registration-form form').addEventListener('submit',e=>{e.preventDefault();const f=e.target,u={name:f['user-name'].value};saveUser(u);document.getElementById('registration-form').classList.add('hidden');document.getElementById('status-panel').classList.remove('hidden');document.getElementById('status-message').textContent=`Bienvenu·e ${u.name} !`;});
-  });
+    function startSimulation(){
+      const points = d3.range(30).map(() => ({ lat:(Math.random()*180)-90, lon:(Math.random()*360)-180 }));
+      svg.selectAll('.sim-point').remove();
+      svg.selectAll('.sim-point')
+        .data(points)
+        .enter().append('circle')
+          .attr('class','sim-point')
+          .attr('r',3)
+          .attr('fill','#5D5CDE')
+          .attr('transform', d => {
+            const [x,y] = projection([d.lon,d.lat]);
+            return `translate(${x},${y})`;
+          });
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      // Language
+      const selLang = document.getElementById('language-selector');
+      const lang = loadLang();
+      selLang.value = lang;
+      setLanguage(lang);
+      selLang.addEventListener('change', e => { setLanguage(e.target.value); saveLang(e.target.value); });
+
+      // Theme toggle
+      document.getElementById('theme-toggle')
+              .addEventListener('click', () => document.body.classList.toggle('dark'));
+
+      // Populate continents
+      const contSel = document.getElementById('user-continent');
+      Object.keys(data).forEach(c => {
+        const opt = document.createElement('option'); opt.value = c; opt.textContent = c;
+        contSel.appendChild(opt);
+      });
+      contSel.addEventListener('change', () => {
+        const cc = contSel.value;
+        const countries = data[cc] || [];
+        const countrySel = document.getElementById('user-country');
+        countrySel.innerHTML = '<option value="">-- Select --</option>';
+        countries.forEach(c => {
+          const o = document.createElement('option'); o.value = c; o.textContent = c;
+          countrySel.appendChild(o);
+        });
+        document.getElementById('country-container').classList.toggle('hidden', countries.length===0);
+        document.getElementById('city-container').classList.add('hidden');
+      });
+
+      document.getElementById('user-country')
+              .addEventListener('change', e => document.getElementById('city-container').classList.toggle('hidden', !e.target.value));
+
+      // Map init & geolocate
+      initMap();
+      document.getElementById('geolocate-button')
+              .addEventListener('click', () => getCurrentPosition().then(centerOn).catch(() => document.getElementById('geolocation-modal').classList.remove('hidden')));
+      document.getElementById('close-geolocation-modal')
+              .addEventListener('click', () => document.getElementById('geolocation-modal').classList.add('hidden'));
+
+      // Simulation
+      document.getElementById('simulation-button')
+              .addEventListener('click', startSimulation);
+
+      // Registration
+      document.querySelector('#registration-form form')
+              .addEventListener('submit', e => {
+        e.preventDefault();
+        const form = e.target;
+        const user = {
+          name: form['user-name'].value,
+          continent: form['user-continent'].value,
+          country: form['user-country'].value || null,
+          city: form['user-city'].value || ''
+        };
+        saveUser(user);
+        document.getElementById('registration-form').classList.add('hidden');
+        document.getElementById('status-panel').classList.remove('hidden');
+        document.getElementById('status-message').textContent = `Bienvenu·e ${user.name}!`;
+      });
+    });
   </script>
 </body>
 </html>
