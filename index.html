@@ -11,10 +11,6 @@
     href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
   />
 
-  <!-- Firebase SDKs (compat version via <script>) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
   <style>
     html, body { margin:0; padding:0; height:100%; }
     #map { width:100%; height:100%; position:absolute; top:0; left:0; }
@@ -50,10 +46,13 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <!-- Firebase SDKs compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // 🚀 1) Colle ta config Firebase (compat) ici :
+    // 1) CONFIG FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyBaMcVHdo2yWYCO0K19iLQkWg1W3_zxy_8",
       authDomain: "triangles-meditation.firebaseapp.com",
@@ -63,14 +62,12 @@
       appId: "1:501789370541:web:11dd620095e401503a7e24",
       measurementId: "G-QPWKZZN6T1"
     };
-
-    // 🚀 2) Initialise Firebase + Firestore
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 🎨 Initialise Leaflet
+    // 2) INIT LEAFLET
     const map = L.map('map').setView([0,0],2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'© OpenStreetMap contributors'
     }).addTo(map);
     delete L.Icon.Default.prototype._getIconUrl;
@@ -80,23 +77,31 @@
       shadowUrl:'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
     });
 
-    // 💡 État de l’app & i18n
+    // 3) ÉTAT & I18N
     let markers = [], selected = '', lang = 'fr';
     const i18n = {
-      fr: { triangle:'Triangle', add:'Je médite !', simulate:'Simuler', new:'Nouveau', lang:'Langue', popup:'Triangle', alertAdd:'Point ajouté : ' },
-      en: { triangle:'Triangle', add:'I meditate!', simulate:'Simulate', new:'New', lang:'Language', popup:'Triangle', alertAdd:'Added point: ' }
+      fr:{triangle:'Triangle', add:'Je médite !', simulate:'Simuler', new:'Nouveau', lang:'Langue', popup:'Triangle', alertAdd:'Point ajouté : '},
+      en:{triangle:'Triangle', add:'I meditate!', simulate:'Simulate', new:'New', lang:'Language', popup:'Triangle', alertAdd:'Added point: '}
     };
 
-    // Références DOM
-    const groupList = document.getElementById('groupList');
-    const newBtn     = document.getElementById('newBtn');
-    const addBtn     = document.getElementById('addBtn');
-    const simBtn     = document.getElementById('simulateBtn');
-    const langSelect = document.getElementById('langSelect');
-    const lblTriangle= document.getElementById('lbl-triangle');
-    const lblLang    = document.getElementById('lbl-lang');
+    // 4) DOM REFS
+    const groupList   = document.getElementById('groupList');
+    const newBtn      = document.getElementById('newBtn');
+    const addBtn      = document.getElementById('addBtn');
+    const simBtn      = document.getElementById('simulateBtn');
+    const langSelect  = document.getElementById('langSelect');
+    const lblTriangle = document.getElementById('lbl-triangle');
+    const lblLang     = document.getElementById('lbl-lang');
 
-    // Traduire l’UI
+    // 5) POPULER LANGUES
+    Object.keys(i18n).forEach(code => {
+      const opt = document.createElement('option');
+      opt.value = code; opt.textContent = code.toUpperCase();
+      langSelect.appendChild(opt);
+    });
+    langSelect.value = lang;
+
+    // 6) FONCTIONS DE RENDER
     function translateUI() {
       lblTriangle.textContent = i18n[lang].triangle + ' :';
       newBtn.textContent      = i18n[lang].new;
@@ -105,47 +110,85 @@
       lblLang.textContent     = i18n[lang].lang + ' :';
     }
 
-    // Afficher les groupes
-    function renderGroups() {
-      groupList.innerHTML = '';
-      // Bouton Nouveau
-      newBtn.onclick = () => { selected=''; renderGroups(); renderMarkers(); };
-      // Comptabiliser les triangles
-      const counts = markers.reduce((acc,m) => {
-        acc[m.triangle_id] = (acc[m.triangle_id]||0)+1;
-        return acc;
-      }, {});
-      Object.entries(counts).forEach(([id,c]) => {
-        const btn = document.createElement('button');
-        btn.textContent = `${id} (${c})`;
-        btn.onclick = () => { selected=id; renderGroups(); renderMarkers(); };
-        if(id===selected) btn.style.background='#ddd';
-        groupList.appendChild(btn);
-      });
-    }
-
-    // Afficher les marqueurs
     function renderMarkers() {
-      map.eachLayer(l => { if(l.options.pane==='markerPane') map.removeLayer(l); });
+      map.eachLayer(l => {
+        if (l instanceof L.Marker || l instanceof L.CircleMarker) {
+          map.removeLayer(l);
+        }
+      });
       markers.forEach(m => {
-        const isSel = m.triangle_id===selected;
+        const isSel = m.triangle_id === selected;
         const mk = isSel
-          ? L.circleMarker([m.lat,m.lng], { radius:8, color:'#f00', fillOpacity:0.6 })
+          ? L.circleMarker([m.lat,m.lng],{radius:8,color:'#f00',fillOpacity:0.6})
           : L.marker([m.lat,m.lng]);
         mk.bindPopup((isSel?'▶ ':'') + i18n[lang].popup + m.triangle_id);
         mk.addTo(map);
       });
     }
 
-    // 🔴 Écouter Firestore en temps réel
-    db.collection('markers')
-      .orderBy('created_at')
+    // 7) TRIANGLES STRUCTURÉS
+    let triangleLayers = {};
+    function renderTriangles() {
+      // supprime anciens
+      Object.values(triangleLayers).forEach(t=>map.removeLayer(t));
+      triangleLayers = {};
+
+      // regroupe
+      const groups = markers.reduce((acc,m) => {
+        (acc[m.triangle_id]||(acc[m.triangle_id]=[])).push([m.lat,m.lng]);
+        return acc;
+      }, {});
+
+      // dessine
+      Object.entries(groups).forEach(([tid, pts]) => {
+        if (pts.length === 3) {
+          // triangle complet
+          const poly = L.polygon(pts, {
+            color: '#006', weight: 2, fillColor: '#06f', fillOpacity: 0.2
+          }).addTo(map);
+          triangleLayers[tid] = poly;
+        } else if (pts.length === 2) {
+          // ligne pointillée
+          const line = L.polyline(pts, {
+            color: '#a00', weight: 2, dashArray: '5,5'
+          }).addTo(map);
+          triangleLayers[tid] = line;
+        }
+        // 1 seul point → reste marqueur
+      });
+    }
+
+    // 8) RAFRAÎCHIR TOUT
+    function updateAll() {
+      translateUI();
+      renderGroups();
+      renderMarkers();
+      renderTriangles();
+    }
+
+    function renderGroups() {
+      groupList.innerHTML = '';
+      newBtn.onclick = () => { selected = ''; updateAll(); };
+      const counts = markers.reduce((a,m) => {
+        a[m.triangle_id] = (a[m.triangle_id]||0)+1; return a;
+      }, {});
+      Object.entries(counts).forEach(([id,c]) => {
+        const b = document.createElement('button');
+        b.textContent = `${id} (${c})`;
+        b.onclick = () => { selected = id; updateAll(); };
+        if (id === selected) b.style.background = '#ddd';
+        groupList.appendChild(b);
+      });
+    }
+
+    // 9) FIRESTORE REALTIME
+    db.collection('markers').orderBy('created_at')
       .onSnapshot(snap => {
         markers = snap.docs.map(d => d.data());
-        translateUI(); renderGroups(); renderMarkers();
+        updateAll();
       });
 
-    // ➕ Ajouter un point (Je médite !)
+    // 10) AJOUTER POINT
     addBtn.onclick = () => navigator.geolocation.getCurrentPosition(({coords}) => {
       const tri = selected || crypto.randomUUID().slice(0,8);
       db.collection('markers').add({
@@ -157,18 +200,15 @@
       alert(i18n[lang].alertAdd + tri);
     });
 
-    // 🔄 Simuler
+    // 11) SIMULER
     simBtn.onclick = async () => {
-      // Supprimer l’existant
       const batch = db.batch();
-      const snap   = await db.collection('markers').get();
-      snap.docs.forEach(d => batch.delete(d.ref));
+      (await db.collection('markers').get()).docs.forEach(d => batch.delete(d.ref));
       await batch.commit();
-      // Créer 10 triangles
-      for(let t=0; t<10; t++){
-        const id  = crypto.randomUUID().slice(0,6);
+      for (let t=0; t<10; t++) {
+        const id = crypto.randomUUID().slice(0,6);
         const lat0 = Math.random()*180-90, lng0 = Math.random()*360-180;
-        for(let i=0; i<3; i++){
+        for (let i=0; i<3; i++) {
           db.collection('markers').add({
             triangle_id: id,
             lat: lat0 + (Math.random()-0.5)*5,
@@ -179,17 +219,11 @@
       }
     };
 
-    // Changer de langue
-    Object.keys(i18n).forEach(code => {
-      const opt = document.createElement('option');
-      opt.value   = code;
-      opt.textContent = code.toUpperCase();
-      langSelect.appendChild(opt);
-    });
-    langSelect.onchange = e => { lang=e.target.value; translateUI(); renderGroups(); renderMarkers(); };
+    // 12) LANGUE
+    langSelect.onchange = e => { lang = e.target.value; updateAll(); };
 
-    // Initialisation
-    translateUI();
+    // Init
+    updateAll();
   });
   </script>
 </body>
