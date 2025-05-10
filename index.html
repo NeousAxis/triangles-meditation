@@ -13,8 +13,6 @@
 <style>
   html, body { margin:0; padding:0; height:100%; }
   #map { width:100%; height:100%; }
-
-  /* Contrôles en surimpression */
   #controls {
     position: absolute;
     top: 1rem;
@@ -30,10 +28,7 @@
     gap: 0.5rem;
   }
   #controls label { display: flex; align-items: center; gap: 0.5rem; }
-  #controls select, #controls button {
-    padding: 0.3rem 0.6rem;
-    font-size: 1rem;
-  }
+  #controls select, #controls button { padding: 0.3rem 0.6rem; font-size: 1rem; }
 </style>
 </head>
 <body>
@@ -41,26 +36,19 @@
     <label>
       <span id="lbl-triangle">Triangle :</span>
       <select id="groupSelect">
-        <option value="">— Nouveau —</option>
+        <option value="">— Sélectionnez —</option>
       </select>
     </label>
     <button id="addBtn">Je médite !</button>
     <button id="newBtn">Nouveau</button>
     <label>
       <span id="lbl-lang">Langue :</span>
-      <select id="langSelect">
-        <option value="fr">FR</option>
-        <option value="en">EN</n        option>
-      </select>
+      <select id="langSelect"></select>
     </label>
   </div>
-
   <div id="map"></div>
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-  <!-- uuid -->
   <script src="https://cdn.jsdelivr.net/npm/uuid@9.0.0/dist/umd/uuidv4.min.js"></script>
-
   <script>
   window.addEventListener('DOMContentLoaded', () => {
     const LS_KEY = 'triangleMeditation';
@@ -68,116 +56,79 @@
 
     // Traductions
     const i18n = {
-      fr: {
-        triangle: 'Triangle',
-        add: 'Je médite !',
-        new: 'Nouveau',
-        lang: 'Langue',
-        popup: 'Triangle',
-        alertAdd: 'Point ajouté au triangle : '
-      },
-      en: {
-        triangle: 'Triangle',
-        add: 'I meditate!',
-        new: 'New',
-        lang: 'Language',
-        popup: 'Triangle',
-        alertAdd: 'Point added to triangle: '
-      }
+      fr: { triangle: 'Triangle', add: 'Je médite !', new: 'Nouveau', select: 'Sélectionnez', lang: 'Langue', popup: 'Triangle', alertAdd: 'Point ajouté au triangle : ' },
+      en: { triangle: 'Triangle', add: 'I meditate!', new: 'New', select: 'Select', lang: 'Language', popup: 'Triangle', alertAdd: 'Point added to triangle: ' },
+      es: { triangle: 'Triángulo', add: '¡Medito!', new: 'Nuevo', select: 'Seleccione', lang: 'Idioma', popup: 'Triángulo', alertAdd: 'Punto añadido al triángulo: ' },
+      de: { triangle: 'Dreieck', add: 'Ich meditiere!', new: 'Neu', select: 'Auswählen', lang: 'Sprache', popup: 'Dreieck', alertAdd: 'Punkt zum Dreieck hinzugefügt: ' }
     };
     let lang = 'fr';
 
-    // Carte
-    const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
+    // Construire sélect de langues dynamiquement
+    const langSelect = document.getElementById('langSelect');
+    Object.keys(i18n).forEach(code => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = code.toUpperCase();
+      langSelect.appendChild(opt);
     });
+
+    // Carte Leaflet
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({ iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png', iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png', shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png' });
 
     const sel = document.getElementById('groupSelect');
     const addBtn = document.getElementById('addBtn');
     const newBtn = document.getElementById('newBtn');
-    const langSelect = document.getElementById('langSelect');
     const lblTriangle = document.getElementById('lbl-triangle');
     const lblLang = document.getElementById('lbl-lang');
 
     function translateUI() {
+      lblTriangle.textContent = i18n[lang].triangle + ':';
       addBtn.textContent = i18n[lang].add;
       newBtn.textContent = i18n[lang].new;
-      lblTriangle.textContent = i18n[lang].triangle + ':';
       lblLang.textContent = i18n[lang].lang + ':';
+      // Placeholder option
+      const placeholder = sel.querySelector('option[value=""]');
+      placeholder.textContent = `— ${i18n[lang].select} —`;
     }
 
     function renderMarkers(highlightId) {
-      map.eachLayer(layer => {
-        if (layer.options && layer.options.pane === 'markerPane') {
-          map.removeLayer(layer);
-        }
-      });
+      map.eachLayer(layer => { if(layer.options && layer.options.pane==='markerPane') map.removeLayer(layer); });
       markers.forEach(m => {
         const isHighlight = m.triangle_id === highlightId;
-        const opts = isHighlight
-          ? { radius: 8, color: '#ff0000', fillColor: '#ffcccc', fillOpacity: 0.8 }
-          : {};
         const marker = isHighlight
-          ? L.circleMarker([m.lat, m.lng], opts)
-          : L.marker([m.lat, m.lng]);
-        marker.bindPopup(`▶ ${i18n[lang].popup} <b>${m.triangle_id}</b><br/>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`);
+          ? L.circleMarker([m.lat,m.lng],{radius:8,color:'#f00',fillColor:'#fcc',fillOpacity:0.8})
+          : L.marker([m.lat,m.lng]);
+        marker.bindPopup(`${isHighlight? '▶ ' : ''}${i18n[lang].popup} <b>${m.triangle_id}</b><br/>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`);
         marker.addTo(map);
       });
     }
 
     function refreshGroups() {
-      const counts = markers.reduce((acc, { triangle_id }) => {
-        acc[triangle_id] = (acc[triangle_id] || 0) + 1;
-        return acc;
-      }, {});
-      sel.innerHTML = `<option value="">— ${i18n[lang].new} —</option>`;
-      Object.entries(counts).forEach(([id, count]) => {
-        const o = document.createElement('option');
-        o.value = id;
-        o.textContent = `${id} (${count})`;
-        sel.appendChild(o);
-      });
+      const counts = markers.reduce((a,{triangle_id})=>{a[triangle_id]=(a[triangle_id]||0)+1;return a;},{});
+      sel.innerHTML = '<option value=""></option>';
+      Object.entries(counts).forEach(([id,c])=>{const o=document.createElement('option');o.value=id;o.textContent=`${id} (${c})`;sel.appendChild(o);});
     }
 
-    addBtn.addEventListener('click', () => {
-      const triId = sel.value || uuidv4().slice(0,8);
-      if (!navigator.geolocation) {
-        return alert('Geolocation not supported');
-      }
-      navigator.geolocation.getCurrentPosition(({ coords }) => {
-        const newPoint = { id: uuidv4(), triangle_id: triId, lat: coords.latitude, lng: coords.longitude };
-        markers.push(newPoint);
-        localStorage.setItem(LS_KEY, JSON.stringify(markers));
-        refreshGroups();
-        renderMarkers(sel.value || triId);
-        alert(i18n[lang].alertAdd + triId);
-      }, err => alert(err.message));
+    addBtn.addEventListener('click',()=>{
+      const triId = sel.value||uuidv4().slice(0,8);
+      if(!navigator.geolocation) return alert('Geolocation not supported');
+      navigator.geolocation.getCurrentPosition(({coords})=>{
+        const p={id:uuidv4(),triangle_id:triId,lat:coords.latitude,lng:coords.longitude};
+        markers.push(p);
+        localStorage.setItem(LS_KEY,JSON.stringify(markers));
+        refreshGroups(); renderMarkers(sel.value||triId);
+        alert(i18n[lang].alertAdd+triId);
+      },e=>alert(e.message));
     });
+    newBtn.addEventListener('click',()=>{sel.value='';renderMarkers('');});
+    sel.addEventListener('change',e=>renderMarkers(e.target.value));
+    langSelect.addEventListener('change',e=>{lang=e.target.value;translateUI();refreshGroups();renderMarkers(sel.value);});
 
-    newBtn.addEventListener('click', () => {
-      sel.value = '';
-      renderMarkers('');
-    });
-
-    sel.addEventListener('change', e => renderMarkers(e.target.value));
-    langSelect.addEventListener('change', e => {
-      lang = e.target.value;
-      translateUI();
-      refreshGroups();
-      renderMarkers(sel.value);
-    });
-
-    // Initial load
-    translateUI();
-    refreshGroups();
-    renderMarkers('');
+    // Init
+    translateUI();refreshGroups();renderMarkers('');
   });
   </script>
 </body>
