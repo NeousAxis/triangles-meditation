@@ -200,23 +200,31 @@
       alert(i18n[lang].alertAdd + tri);
     });
 
-    // 11) SIMULER
-    simBtn.onclick = async () => {
-      const batch = db.batch();
-      (await db.collection('markers').get()).docs.forEach(d => batch.delete(d.ref));
-      await batch.commit();
-      for (let t=0; t<10; t++) {
-        const id = crypto.randomUUID().slice(0,6);
-        const lat0 = Math.random()*180-90, lng0 = Math.random()*360-180;
-        for (let i=0; i<3; i++) {
-          db.collection('markers').add({
-            triangle_id: id,
-            lat: lat0 + (Math.random()-0.5)*5,
-            lng: lng0 + (Math.random()-0.5)*5,
-            created_at: Date.now()
-          });
-        }
-      }
+    // 11) SIMULER – correction
+simBtn.onclick = async () => {
+  // 1) Supprime tout d'abord
+  await db.collection('markers').delete().neq('triangle_id', ''); // supprime toutes les lignes
+
+  // 2) Génère 10 triangles de 3 points chacun
+  const numTriangles = 10;
+  for (let t = 0; t < numTriangles; t++) {
+    const triId = crypto.randomUUID().slice(0, 6);
+    // Choix d'un centre terrestre approximatif
+    const centerLat = Math.random() * (75 + 60) - 60;   // entre -60° et +75°
+    const centerLng = Math.random() * 360 - 180;        // entre -180° et +180°
+    for (let i = 0; i < 3; i++) {
+      // Légère dispersion autour du centre (±2°)
+      const lat = centerLat + (Math.random() - 0.5) * 4;
+      const lng = centerLng + (Math.random() - 0.5) * 4;
+      await db.collection('markers').add({
+        triangle_id: triId,
+        lat,
+        lng,
+        created_at: Date.now()
+      });
+    }
+  }
+  // Laisse le realtime Firestore rafraîchir la carte et les triangles
     };
 
     // 12) LANGUE
