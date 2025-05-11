@@ -196,7 +196,7 @@
                     networkStatus: "Network Status",
                     yourCoordinates: "Your coordinates",
                     waitingForTriangle: "Waiting to join a triangle... Need more participants.",
-                    timeRemaining: "Your position will be maintained for {0} minutes.",
+                    timeRemaining: "Your position will be maintained for 20 minutes.",
                     minutes: "minutes",
                     seconds: "seconds",
                     selectOption: "-- Select --",
@@ -234,7 +234,7 @@
                     networkStatus: "Statut du Réseau",
                     yourCoordinates: "Vos coordonnées",
                     waitingForTriangle: "En attente de rejoindre un triangle... Besoin de plus de participants.",
-                    timeRemaining: "Votre position sera maintenue pendant {0} minutes.",
+                    timeRemaining: "Votre position sera maintenue pendant 20 minutes.",
                     minutes: "minutes",
                     seconds: "secondes",
                     selectOption: "-- Sélectionner --",
@@ -272,7 +272,7 @@
                     networkStatus: "Estado de la Red",
                     yourCoordinates: "Tus coordenadas",
                     waitingForTriangle: "Esperando unirse a un triángulo... Se necesitan más participantes.",
-                    timeRemaining: "Tu posición se mantendrá durante {0} minutos.",
+                    timeRemaining: "Tu posición se mantendrá durante 20 minutos.",
                     minutes: "minutos",
                     seconds: "segundos",
                     selectOption: "-- Seleccionar --",
@@ -310,7 +310,7 @@
                     networkStatus: "Netzwerkstatus",
                     yourCoordinates: "Deine Koordinaten",
                     waitingForTriangle: "Warten auf Beitritt zu einem Dreieck... Mehr Teilnehmer werden benötigt.",
-                    timeRemaining: "Deine Position wird für {0} Minuten beibehalten.",
+                    timeRemaining: "Deine Position wird für 20 Minuten beibehalten.",
                     minutes: "Minuten",
                     seconds: "Sekunden",
                     selectOption: "-- Auswählen --",
@@ -348,7 +348,7 @@
                     networkStatus: "Stato della Rete",
                     yourCoordinates: "Le tue coordinate",
                     waitingForTriangle: "In attesa di unirsi a un triangolo... Servono più partecipanti.",
-                    timeRemaining: "La tua posizione sarà mantenuta per {0} minuti.",
+                    timeRemaining: "La tua posizione sarà mantenuta per 20 minuti.",
                     minutes: "minuti",
                     seconds: "secondi",
                     selectOption: "-- Seleziona --",
@@ -386,7 +386,7 @@
                     networkStatus: "Статус Сети",
                     yourCoordinates: "Ваши координаты",
                     waitingForTriangle: "Ожидание присоединения к треугольнику... Нужны дополнительные участники.",
-                    timeRemaining: "Ваша позиция будет сохраняться в течение {0} минут.",
+                    timeRemaining: "Ваша позиция будет сохраняться в течение 20 минут.",
                     minutes: "минут",
                     seconds: "секунд",
                     selectOption: "-- Выбрать --",
@@ -703,15 +703,8 @@
                     <div class="text-center mb-4">
                         <p id="participant-info" class="mb-2">Your coordinates: [0, 0]</p>
                         <p id="triangle-status" class="mb-2">Waiting to join a triangle... Need more participants.</p>
-                        <p id="time-remaining" class="mt-4 text-primary">Your position will be maintained for 30 minutes.</p>
-                        <div id="position-timer" class="text-sm text-gray-500 mt-2">30:00</div>
-                    </div>
-                    
-                    <div id="meditation-timer-container" class="hidden">
-                        <div class="text-center mb-4 text-4xl font-bold" id="meditation-timer">20:00</div>
-                        <button id="start-meditation" class="w-full bg-primary hover:bg-opacity-90 text-white font-bold py-2 px-4 rounded">
-                            <span id="start-meditation-text">Start Meditation</span>
-                        </button>
+                        <p id="time-remaining" class="mt-4 text-primary">Your position will be maintained for 20 minutes.</p>
+                        <div id="position-timer" class="text-sm text-gray-500 mt-2">20:00</div>
                     </div>
                     
                     <button id="leave-network" class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
@@ -751,7 +744,6 @@
             
             // Register button handlers
             document.getElementById('join-network').addEventListener('click', joinNetwork);
-            document.getElementById('start-meditation').addEventListener('click', startMeditation);
             document.getElementById('geolocate-button').addEventListener('click', getUserLocation);
             document.getElementById('simulation-button').addEventListener('click', toggleSimulation);
             
@@ -984,7 +976,7 @@
                     coordinates: coordinates,
                     language: window.appData.currentLanguage,
                     joinedAt: new Date().getTime(),
-                    expiresAt: new Date().getTime() + (30 * 60 * 1000) // 30 minutes from now
+                    expiresAt: new Date().getTime() + (20 * 60 * 1000) // 20 minutes from now
                 };
                 
                 // Save to localStorage if available
@@ -1011,14 +1003,12 @@
                 if (userTriangle) {
                     document.getElementById('triangle-status').textContent = 
                         `You are part of triangle #${userTriangle.id}`;
-                    document.getElementById('meditation-timer-container').classList.remove('hidden');
                 } else {
                     document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
                 }
                 
                 // Update time remaining message
-                const timeRemainingText = getText('timeRemaining').replace('{0}', '30');
-                document.getElementById('time-remaining').textContent = timeRemainingText;
+                document.getElementById('time-remaining').textContent = getText('timeRemaining');
                 
                 // Start the countdown timer for the position
                 startPositionTimer();
@@ -1064,12 +1054,12 @@
             updateStatisticsDisplay();
         }
         
-        // Start the 30-minute countdown timer for the user's position
+        // Start the 20-minute countdown timer for the user's position
         function startPositionTimer() {
             if (!window.appData.userProfile) return;
             
             const timerElement = document.getElementById('position-timer');
-            let timeLeft = 30 * 60; // 30 minutes in seconds
+            let timeLeft = 20 * 60; // 20 minutes in seconds
             
             const timerInterval = setInterval(() => {
                 timeLeft--;
@@ -1151,15 +1141,14 @@
                         if (userTriangle) {
                             document.getElementById('triangle-status').textContent = 
                                 `You are part of triangle #${userTriangle.id}`;
-                            document.getElementById('meditation-timer-container').classList.remove('hidden');
                         } else {
                             document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
                         }
                         
                         // Update time remaining
                         const timeRemaining = Math.round((profile.expiresAt - Date.now()) / 1000);
-                        const timeRemainingText = getText('timeRemaining').replace('{0}', Math.ceil(timeRemaining / 60));
-                        document.getElementById('time-remaining').textContent = timeRemainingText;
+                        const minutes = Math.ceil(timeRemaining / 60);
+                        document.getElementById('time-remaining').textContent = getText('timeRemaining');
                         
                         // Restart the countdown timer
                         startPositionTimer();
@@ -1249,40 +1238,10 @@
                 if (userTriangle) {
                     document.getElementById('triangle-status').textContent = 
                         `You are part of triangle #${userTriangle.id}`;
-                    document.getElementById('meditation-timer-container').classList.remove('hidden');
                 } else {
                     document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
-                    document.getElementById('meditation-timer-container').classList.add('hidden');
                 }
             }
-        }
-        
-        // Start meditation timer
-        function startMeditation() {
-            let timeLeft = 20 * 60; // 20 minutes
-            const timerElement = document.getElementById('meditation-timer');
-            
-            // Disable start button
-            const startButton = document.getElementById('start-meditation');
-            startButton.disabled = true;
-            startButton.classList.add('opacity-50');
-            
-            // Start timer
-            const timerInterval = setInterval(() => {
-                timeLeft--;
-                
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                
-                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('triangle-status').textContent = 'Meditation complete';
-                    startButton.disabled = false;
-                    startButton.classList.remove('opacity-50');
-                }
-            }, 1000);
         }
         
         // Function to update all text elements based on selected language
@@ -1311,7 +1270,6 @@
             updateElementText('participants-label', 'participants');
             updateElementText('triangles-label', 'trianglesFormed');
             updateElementText('waiting-label', 'waitingParticipants');
-            updateElementText('start-meditation-text', 'startMeditation');
             updateElementText('status-title', 'networkStatus');
             updateElementText('select-option', 'selectOption');
             updateElementText('geolocate-text', 'useMyLocation');
@@ -1323,8 +1281,7 @@
                 document.getElementById('participant-info').textContent = 
                     `${getText('yourCoordinates')}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}]`;
                 document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
-                const timeRemainingText = getText('timeRemaining').replace('{0}', '30');
-                document.getElementById('time-remaining').textContent = timeRemainingText;
+                document.getElementById('time-remaining').textContent = getText('timeRemaining');
                 document.getElementById('status-message').textContent = getText('joinedNetwork');
             }
             
@@ -1737,7 +1694,7 @@
                           ]
                         : getRandomCoordinatesForRegion(continent),
                     joinedAt: new Date().getTime(),
-                    expiresAt: new Date().getTime() + (30 * 60 * 1000) // 30 minutes from now
+                    expiresAt: new Date().getTime() + (20 * 60 * 1000) // 20 minutes from now
                 };
                 
                 newParticipants.push(participant);
