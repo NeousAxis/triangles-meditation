@@ -4,130 +4,2202 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Triangle Meditation Network</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- D3.js and TopoJSON -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
-    <!-- Markdown parser -->
     <script src="https://unpkg.com/marked@4.0.0/marked.min.js"></script>
-    <!-- Three.js core -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <!-- OrbitControls for Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
-
     <style>
-        /* (Toutes tes règles CSS existantes, inchangées) */
-        .triangle-path { stroke-dasharray: 10; stroke-dashoffset: 0; animation: dash 3s linear infinite; }
-        @keyframes dash { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 30; } }
-        .triangle-point { animation: pulse 2s infinite; transform-origin: center center; transform-box: fill-box; }
-        @keyframes pulse { 0% { opacity: 0.7; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.7; transform: scale(0.9); } }
-        .user-point { stroke: white; stroke-width: 2px; animation: userPulse 2s infinite; }
-        @keyframes userPulse { 0% { opacity: 0.8; stroke-width: 2px; transform: scale(1); } 50% { opacity: 1; stroke-width: 3px; transform: scale(1.3); } 100% { opacity: 0.8; stroke-width: 2px; transform: scale(1); } }
-        .map-container { touch-action: manipulation; }
+        .triangle-path {
+            stroke-dasharray: 10;
+            stroke-dashoffset: 0;
+            animation: dash 3s linear infinite;
+        }
+        
+        @keyframes dash {
+            from {
+                stroke-dashoffset: 0;
+            }
+            to {
+                stroke-dashoffset: 30;
+            }
+        }
+        
+        .triangle-point {
+            animation: pulse 2s infinite;
+            transform-origin: center center;
+            transform-box: fill-box;
+        }
+        
+        @keyframes pulse {
+            0% {
+                opacity: 0.7;
+                transform: scale(0.9);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 0.7;
+                transform: scale(0.9);
+            }
+        }
+        
+        .map-container {
+            touch-action: manipulation;
+        }
+        
         /* Dark mode support */
-        .dark .text-primary { color: #8C8BFF; }
-        .dark .bg-primary { background-color: #5D5CDE; }
-        .dark .border-primary { border-color: #5D5CDE; }
-        .dark .btn-primary { background-color: #5D5CDE; color: white; }
-        .dark .btn-primary:hover { background-color: #4A49B8; }
+        .dark .text-primary {
+            color: #8C8BFF;
+        }
+        
+        .dark .bg-primary {
+            background-color: #5D5CDE;
+        }
+        
+        .dark .border-primary {
+            border-color: #5D5CDE;
+        }
+        
+        .dark .btn-primary {
+            background-color: #5D5CDE;
+            color: white;
+        }
+        
+        .dark .btn-primary:hover {
+            background-color: #4A49B8;
+        }
+        
         /* Loading spinner */
-        .loading-spinner { border: 3px solid rgba(255,255,255,0.3); border-radius:50%; border-top:3px solid #5D5CDE; width:24px; height:24px; animation:spin 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:10px; }
-        @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
-        /* Fade transitions */
-        .fade-in { animation: fadeIn .5s ease-in; }
-        .fade-out { animation: fadeOut .5s ease-out; }
-        @keyframes fadeIn { from{opacity:0;}to{opacity:1;} }
-        @keyframes fadeOut { from{opacity:1;}to{opacity:0;} }
-        /* Earth view */
-        .earth-view { position:relative; width:100%; height:100%; overflow:hidden; background-color:#000; border-radius:8px; }
-        #earth-canvas { width:100%; height:100%; display:block; }
-        .earth-info { position:absolute; bottom:16px; left:16px; background-color:rgba(0,0,0,0.7); color:white; padding:8px 16px; border-radius:20px; font-size:14px; z-index:100; }
-        /* RTL support */
-        [dir="rtl"] .ml-2 {margin-left:0; margin-right:.5rem;} [dir="rtl"] .mr-2 {margin-right:0; margin-left:.5rem;} [dir="rtl"] .space-x-4 > * + * {margin-left:0; margin-right:1rem;}
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #5D5CDE;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Highlight user's point with a distinctive style */
+        .user-point {
+            stroke: white;
+            stroke-width: 2px;
+            animation: userPulse 2s infinite;
+        }
+        
+        @keyframes userPulse {
+            0% {
+                opacity: 0.8;
+                stroke-width: 2px;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                stroke-width: 3px;
+                transform: scale(1.3);
+            }
+            100% {
+                opacity: 0.8;
+                stroke-width: 2px;
+                transform: scale(1);
+            }
+        }
+        
+        /* RTL support for Russian language */
+        [dir="rtl"] .ml-2 {
+            margin-left: 0;
+            margin-right: 0.5rem;
+        }
+
+        [dir="rtl"] .mr-2 {
+            margin-right: 0;
+            margin-left: 0.5rem;
+        }
+
+        [dir="rtl"] .space-x-4 > * + * {
+            margin-left: 0;
+            margin-right: 1rem;
+        }
+        
+        /* Animation pour la transition entre les vues */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* Style pour la vue de la Terre depuis l'espace */
+        .earth-view {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            border-radius: 8px;
+        }
+        
+        .earth-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .earth-img {
+            position: relative;
+            width: 70%;
+            height: auto;
+            aspect-ratio: 1/1;
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(70, 130, 230, 0.4);
+        }
+        
+        .energy-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            animation: energyPulse 3s infinite;
+        }
+        
+        @keyframes energyPulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0.6; }
+        }
+        
+        .energy-line {
+            position: absolute;
+            height: 3px;
+            transform-origin: 0 0;
+            background: linear-gradient(90deg, currentColor 0%, rgba(255, 255, 255, 0.8) 50%, currentColor 100%);
+            opacity: 0.7;
+            z-index: 5;
+            animation: linePulse 4s infinite;
+        }
+        
+        @keyframes linePulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.4; }
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 4s infinite;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        
+        .earth-info {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 100;
+        }
+        
+        .user-energy-point {
+            background-color: #FF5722;
+            box-shadow: 0 0 15px #FF5722, 0 0 30px #FF5722;
+            width: 12px;
+            height: 12px;
+            z-index: 15;
+        }
+        
+        /* 3D Earth styles */
+        #earth-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
     </style>
     <script>
-        tailwind.config = { darkMode:'class', theme:{extend:{colors:{primary:'#5D5CDE'}}} };
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                    }
+                }
+            }
+        }
     </script>
 </head>
 <body class="font-sans min-h-screen flex flex-col transition-colors duration-300 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-    <!-- Language & dark mode detection -->
+    <!-- Language detection and dark mode detection -->
     <script>
-        if(window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',e=>{ e.matches?document.documentElement.classList.add('dark'):document.documentElement.classList.remove('dark'); });
-        function detectBrowserLanguage(){ if(localStorage){ const sl=localStorage.getItem('preferredLanguage'); if(sl&&window.appData.availableLanguages.includes(sl)){ window.appData.currentLanguage=sl; return;} } const bl=(navigator.language||navigator.userLanguage).split('-')[0]; if(window.appData.availableLanguages.includes(bl)) window.appData.currentLanguage=bl; }
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+        
+        // Simulated storage for user data since localStorage isn't available
+        window.appData = {
+            userProfile: null,
+            participants: [],
+            triangles: [],
+            // Langues principales uniquement
+            availableLanguages: ['en', 'fr', 'es', 'de', 'it', 'ru'],
+            currentLanguage: 'en',
+            earthViewActive: false, // Nouvelle propriété pour suivre l'état de la vue de la Terre
+            translations: {
+                en: {
+                    appTitle: "Triangle Meditation Network",
+                    welcome: "Connect with others through meditation triangles",
+                    activeTriangles: "Active Triangles",
+                    userName: "Your Name",
+                    continent: "Continent",
+                    country: "Country",
+                    city: "City",
+                    cityHelp: "Enter any city name - coordinates will be determined automatically",
+                    cityRequired: "City is required",
+                    language: "Language",
+                    join: "Join Network",
+                    waitingToJoin: "Waiting to join meditation network...",
+                    joinedNetwork: "You have joined the meditation network",
+                    selectContinent: "Please select your continent",
+                    selectCountry: "Please select your country",
+                    enterCity: "Please enter your city",
+                    enterName: "Please enter your name",
+                    participants: "Current Participants",
+                    trianglesFormed: "Triangles Formed",
+                    waitingParticipants: "Waiting Participants",
+                    startMeditation: "Start Meditation",
+                    meditationInProgress: "Meditation in Progress",
+                    next: "Next",
+                    back: "Back",
+                    networkStatus: "Network Status",
+                    yourCoordinates: "Your coordinates",
+                    waitingForTriangle: "Waiting to join a triangle... Need more participants.",
+                    timeRemaining: "Your position will be maintained for 20 minutes.",
+                    minutes: "minutes",
+                    seconds: "seconds",
+                    selectOption: "-- Select --",
+                    locating: "Locating...",
+                    useMyLocation: "Use My Location",
+                    locationError: "Location could not be determined",
+                    startSimulation: "Start 30-Person Simulation",
+                    stopSimulation: "Stop Simulation",
+                    viewEarthSpace: "View Earth from Space",
+                    returnToMap: "Return to Map View",
+                    activeNetwork: "Global Energy Network",
+                    earthSpaceInfo: "Meditation Energy: {0} triangles active"
+                },
+                fr: {
+                    appTitle: "Réseau de Méditation en Triangle",
+                    welcome: "Connectez-vous aux autres via des triangles de méditation",
+                    activeTriangles: "Triangles Actifs",
+                    userName: "Votre Nom",
+                    continent: "Continent",
+                    country: "Pays",
+                    city: "Ville",
+                    cityHelp: "Entrez n'importe quelle ville - les coordonnées seront déterminées automatiquement",
+                    cityRequired: "La ville est requise",
+                    language: "Langue",
+                    join: "Rejoindre le Réseau",
+                    waitingToJoin: "En attente de rejoindre le réseau de méditation...",
+                    joinedNetwork: "Vous avez rejoint le réseau de méditation",
+                    selectContinent: "Veuillez sélectionner votre continent",
+                    selectCountry: "Veuillez sélectionner votre pays",
+                    enterCity: "Veuillez entrer votre ville",
+                    enterName: "Veuillez saisir votre nom",
+                    participants: "Participants Actuels",
+                    trianglesFormed: "Triangles Formés",
+                    waitingParticipants: "Participants en Attente",
+                    startMeditation: "Commencer la Méditation",
+                    meditationInProgress: "Méditation en Cours",
+                    next: "Suivant",
+                    back: "Retour",
+                    networkStatus: "Statut du Réseau",
+                    yourCoordinates: "Vos coordonnées",
+                    waitingForTriangle: "En attente de rejoindre un triangle... Besoin de plus de participants.",
+                    timeRemaining: "Votre position sera maintenue pendant 20 minutes.",
+                    minutes: "minutes",
+                    seconds: "secondes",
+                    selectOption: "-- Sélectionner --",
+                    locating: "Localisation en cours...",
+                    useMyLocation: "Utiliser ma position",
+                    locationError: "Impossible de déterminer votre position",
+                    startSimulation: "Commencer simulation 30 participants",
+                    stopSimulation: "Arrêter simulation",
+                    viewEarthSpace: "Voir la Terre depuis l'espace",
+                    returnToMap: "Retour à la carte",
+                    activeNetwork: "Réseau d'énergie global",
+                    earthSpaceInfo: "Énergie de méditation : {0} triangles actifs"
+                },
+                es: {
+                    appTitle: "Red de Meditación Triangular",
+                    welcome: "Conéctate con otros a través de triángulos de meditación",
+                    activeTriangles: "Triángulos Activos",
+                    userName: "Tu Nombre",
+                    continent: "Continente",
+                    country: "País",
+                    city: "Ciudad",
+                    cityHelp: "Ingresa cualquier nombre de ciudad - las coordenadas se determinarán automáticamente",
+                    cityRequired: "La ciudad es obligatoria",
+                    language: "Idioma",
+                    join: "Unirse a la Red",
+                    waitingToJoin: "Esperando unirse a la red de meditación...",
+                    joinedNetwork: "Te has unido a la red de meditación",
+                    selectContinent: "Por favor selecciona tu continente",
+                    selectCountry: "Por favor selecciona tu país",
+                    enterCity: "Por favor ingresa tu ciudad",
+                    enterName: "Por favor ingresa tu nombre",
+                    participants: "Participantes Actuales",
+                    trianglesFormed: "Triángulos Formados",
+                    waitingParticipants: "Participantes en Espera",
+                    startMeditation: "Iniciar Meditación",
+                    meditationInProgress: "Meditación en Curso",
+                    next: "Siguiente",
+                    back: "Atrás",
+                    networkStatus: "Estado de la Red",
+                    yourCoordinates: "Tus coordenadas",
+                    waitingForTriangle: "Esperando unirse a un triángulo... Se necesitan más participantes.",
+                    timeRemaining: "Tu posición se mantendrá durante 20 minutos.",
+                    minutes: "minutos",
+                    seconds: "segundos",
+                    selectOption: "-- Seleccionar --",
+                    locating: "Localizando...",
+                    useMyLocation: "Usar mi ubicación",
+                    locationError: "No se pudo determinar la ubicación",
+                    startSimulation: "Iniciar simulación 30 participantes",
+                    stopSimulation: "Detener simulación",
+                    viewEarthSpace: "Ver la Tierra desde el espacio",
+                    returnToMap: "Volver al mapa",
+                    activeNetwork: "Red de energía global",
+                    earthSpaceInfo: "Energía de meditación: {0} triángulos activos"
+                },
+                de: {
+                    appTitle: "Dreieck-Meditations-Netzwerk",
+                    welcome: "Verbinde dich mit anderen durch Meditationsdreiecke",
+                    activeTriangles: "Aktive Dreiecke",
+                    userName: "Dein Name",
+                    continent: "Kontinent",
+                    country: "Land",
+                    city: "Stadt",
+                    cityHelp: "Gib einen beliebigen Stadtnamen ein - die Koordinaten werden automatisch ermittelt",
+                    cityRequired: "Stadt ist erforderlich",
+                    language: "Sprache",
+                    join: "Netzwerk beitreten",
+                    waitingToJoin: "Warten auf Beitritt zum Meditationsnetzwerk...",
+                    joinedNetwork: "Du bist dem Meditationsnetzwerk beigetreten",
+                    selectContinent: "Bitte wähle deinen Kontinent aus",
+                    selectCountry: "Bitte wähle dein Land aus",
+                    enterCity: "Bitte gib deine Stadt ein",
+                    enterName: "Bitte gib deinen Namen ein",
+                    participants: "Aktuelle Teilnehmer",
+                    trianglesFormed: "Gebildete Dreiecke",
+                    waitingParticipants: "Wartende Teilnehmer",
+                    startMeditation: "Meditation starten",
+                    meditationInProgress: "Meditation läuft",
+                    next: "Weiter",
+                    back: "Zurück",
+                    networkStatus: "Netzwerkstatus",
+                    yourCoordinates: "Deine Koordinaten",
+                    waitingForTriangle: "Warten auf Beitritt zu einem Dreieck... Mehr Teilnehmer werden benötigt.",
+                    timeRemaining: "Deine Position wird für 20 Minuten beibehalten.",
+                    minutes: "Minuten",
+                    seconds: "Sekunden",
+                    selectOption: "-- Auswählen --",
+                    locating: "Lokalisierung...",
+                    useMyLocation: "Meinen Standort verwenden",
+                    locationError: "Standort konnte nicht ermittelt werden",
+                    startSimulation: "30-Personen-Simulation starten",
+                    stopSimulation: "Simulation stoppen",
+                    viewEarthSpace: "Erde aus dem Weltraum betrachten",
+                    returnToMap: "Zurück zur Karte",
+                    activeNetwork: "Globales Energienetzwerk",
+                    earthSpaceInfo: "Meditationsenergie: {0} Dreiecke aktiv"
+                },
+                it: {
+                    appTitle: "Rete di Meditazione Triangolare",
+                    welcome: "Connettiti con altri attraverso triangoli di meditazione",
+                    activeTriangles: "Triangoli Attivi",
+                    userName: "Il tuo Nome",
+                    continent: "Continente",
+                    country: "Paese",
+                    city: "Città",
+                    cityHelp: "Inserisci qualsiasi nome di città - le coordinate saranno determinate automaticamente",
+                    cityRequired: "La città è obbligatoria",
+                    language: "Lingua",
+                    join: "Unisciti alla Rete",
+                    waitingToJoin: "In attesa di unirsi alla rete di meditazione...",
+                    joinedNetwork: "Ti sei unito alla rete di meditazione",
+                    selectContinent: "Seleziona il tuo continente",
+                    selectCountry: "Seleziona il tuo paese",
+                    enterCity: "Inserisci la tua città",
+                    enterName: "Inserisci il tuo nome",
+                    participants: "Partecipanti Attuali",
+                    trianglesFormed: "Triangoli Formati",
+                    waitingParticipants: "Partecipanti in Attesa",
+                    startMeditation: "Inizia Meditazione",
+                    meditationInProgress: "Meditazione in Corso",
+                    next: "Avanti",
+                    back: "Indietro",
+                    networkStatus: "Stato della Rete",
+                    yourCoordinates: "Le tue coordinate",
+                    waitingForTriangle: "In attesa di unirsi a un triangolo... Servono più partecipanti.",
+                    timeRemaining: "La tua posizione sarà mantenuta per 20 minuti.",
+                    minutes: "minuti",
+                    seconds: "secondi",
+                    selectOption: "-- Seleziona --",
+                    locating: "Localizzazione...",
+                    useMyLocation: "Usa la mia posizione",
+                    locationError: "Impossibile determinare la posizione",
+                    startSimulation: "Avvia simulazione 30 partecipanti",
+                    stopSimulation: "Ferma simulazione",
+                    viewEarthSpace: "Visualizza Terra dallo spazio",
+                    returnToMap: "Torna alla mappa",
+                    activeNetwork: "Rete energetica globale",
+                    earthSpaceInfo: "Energia di meditazione: {0} triangoli attivi"
+                },
+                ru: {
+                    appTitle: "Сеть Треугольной Медитации",
+                    welcome: "Соединяйтесь с другими через треугольники медитации",
+                    activeTriangles: "Активные Треугольники",
+                    userName: "Ваше Имя",
+                    continent: "Континент",
+                    country: "Страна",
+                    city: "Город",
+                    cityHelp: "Введите любое название города - координаты будут определены автоматически",
+                    cityRequired: "Необходимо указать город",
+                    language: "Язык",
+                    join: "Присоединиться к Сети",
+                    waitingToJoin: "Ожидание присоединения к сети медитации...",
+                    joinedNetwork: "Вы присоединились к сети медитации",
+                    selectContinent: "Пожалуйста, выберите ваш континент",
+                    selectCountry: "Пожалуйста, выберите вашу страну",
+                    enterCity: "Пожалуйста, введите ваш город",
+                    enterName: "Пожалуйста, введите ваше имя",
+                    participants: "Текущие Участники",
+                    trianglesFormed: "Сформированные Треугольники",
+                    waitingParticipants: "Ожидающие Участники",
+                    startMeditation: "Начать Медитацию",
+                    meditationInProgress: "Медитация в Процессе",
+                    next: "Далее",
+                    back: "Назад",
+                    networkStatus: "Статус Сети",
+                    yourCoordinates: "Ваши координаты",
+                    waitingForTriangle: "Ожидание присоединения к треугольнику... Нужны дополнительные участники.",
+                    timeRemaining: "Ваша позиция будет сохраняться в течение 20 минут.",
+                    minutes: "минут",
+                    seconds: "секунд",
+                    selectOption: "-- Выбрать --",
+                    locating: "Определение местоположения...",
+                    useMyLocation: "Использовать мое местоположение",
+                    locationError: "Не удалось определить местоположение",
+                    startSimulation: "Запустить симуляцию 30 участников",
+                    stopSimulation: "Остановить симуляцию",
+                    viewEarthSpace: "Просмотр Земли из космоса",
+                    returnToMap: "Вернуться к карте",
+                    activeNetwork: "Глобальная энергетическая сеть",
+                    earthSpaceInfo: "Энергия медитации: {0} активных треугольников"
+                }
+            },
+            // Geographical data for hierarchical selection
+            geoData: {
+                continents: [
+                    { id: "europe", name: "Europe" },
+                    { id: "north-america", name: "North America" },
+                    { id: "south-america", name: "South America" },
+                    { id: "asia", name: "Asia" },
+                    { id: "africa", name: "Africa" },
+                    { id: "oceania", name: "Oceania" }
+                ],
+                countries: {
+                    "europe": [
+                        { id: "fr", name: "France" },
+                        { id: "de", name: "Germany" },
+                        { id: "uk", name: "United Kingdom" },
+                        { id: "it", name: "Italy" },
+                        { id: "es", name: "Spain" },
+                        { id: "pt", name: "Portugal" },
+                        { id: "ch", name: "Switzerland" },
+                        { id: "at", name: "Austria" },
+                        { id: "be", name: "Belgium" },
+                        { id: "nl", name: "Netherlands" },
+                        { id: "gr", name: "Greece" },
+                        { id: "se", name: "Sweden" },
+                        { id: "no", name: "Norway" },
+                        { id: "fi", name: "Finland" },
+                        { id: "dk", name: "Denmark" },
+                        { id: "ie", name: "Ireland" }
+                    ],
+                    "north-america": [
+                        { id: "us", name: "United States" },
+                        { id: "ca", name: "Canada" },
+                        { id: "mx", name: "Mexico" },
+                        { id: "cu", name: "Cuba" },
+                        { id: "jm", name: "Jamaica" },
+                        { id: "ht", name: "Haiti" },
+                        { id: "do", name: "Dominican Republic" },
+                        { id: "gt", name: "Guatemala" },
+                        { id: "hn", name: "Honduras" },
+                        { id: "ni", name: "Nicaragua" },
+                        { id: "cr", name: "Costa Rica" },
+                        { id: "pa", name: "Panama" }
+                    ],
+                    "south-america": [
+                        { id: "br", name: "Brazil" },
+                        { id: "ar", name: "Argentina" },
+                        { id: "cl", name: "Chile" },
+                        { id: "co", name: "Colombia" },
+                        { id: "pe", name: "Peru" },
+                        { id: "ve", name: "Venezuela" },
+                        { id: "ec", name: "Ecuador" },
+                        { id: "bo", name: "Bolivia" },
+                        { id: "py", name: "Paraguay" },
+                        { id: "uy", name: "Uruguay" },
+                        { id: "gy", name: "Guyana" },
+                        { id: "sr", name: "Suriname" }
+                    ],
+                    "asia": [
+                        { id: "cn", name: "China" },
+                        { id: "jp", name: "Japan" },
+                        { id: "in", name: "India" },
+                        { id: "kr", name: "South Korea" },
+                        { id: "id", name: "Indonesia" },
+                        { id: "my", name: "Malaysia" },
+                        { id: "th", name: "Thailand" },
+                        { id: "vn", name: "Vietnam" },
+                        { id: "ph", name: "Philippines" },
+                        { id: "sg", name: "Singapore" },
+                        { id: "ru", name: "Russia" },
+                        { id: "tr", name: "Turkey" },
+                        { id: "sa", name: "Saudi Arabia" },
+                        { id: "ae", name: "United Arab Emirates" },
+                        { id: "il", name: "Israel" },
+                        { id: "ir", name: "Iran" }
+                    ],
+                    "africa": [
+                        { id: "eg", name: "Egypt" },
+                        { id: "za", name: "South Africa" },
+                        { id: "ng", name: "Nigeria" },
+                        { id: "ke", name: "Kenya" },
+                        { id: "ma", name: "Morocco" },
+                        { id: "dz", name: "Algeria" },
+                        { id: "tn", name: "Tunisia" },
+                        { id: "et", name: "Ethiopia" },
+                        { id: "gh", name: "Ghana" },
+                        { id: "tz", name: "Tanzania" },
+                        { id: "cm", name: "Cameroon" },
+                        { id: "ci", name: "Ivory Coast" }
+                    ],
+                    "oceania": [
+                        { id: "au", name: "Australia" },
+                        { id: "nz", name: "New Zealand" },
+                        { id: "fj", name: "Fiji" },
+                        { id: "pg", name: "Papua New Guinea" },
+                        { id: "sb", name: "Solomon Islands" },
+                        { id: "vu", name: "Vanuatu" },
+                        { id: "nc", name: "New Caledonia" },
+                        { id: "ws", name: "Samoa" }
+                    ]
+                },
+                // Approximate coordinates for countries (lat, lng)
+                coordinates: {
+                    "fr": [46.2276, 2.2137],
+                    "de": [51.1657, 10.4515],
+                    "uk": [55.3781, -3.4360],
+                    "it": [41.8719, 12.5674],
+                    "es": [40.4637, -3.7492],
+                    "pt": [39.3999, -8.2245],
+                    "ch": [46.8182, 8.2275],
+                    "at": [47.5162, 14.5501],
+                    "be": [50.5039, 4.4699],
+                    "nl": [52.1326, 5.2913],
+                    "gr": [39.0742, 21.8243],
+                    "se": [60.1282, 18.6435],
+                    "no": [60.4720, 8.4689],
+                    "fi": [61.9241, 25.7482],
+                    "dk": [56.2639, 9.5018],
+                    "ie": [53.1424, -7.6921],
+                    "us": [37.0902, -95.7129],
+                    "ca": [56.1304, -106.3468],
+                    "mx": [23.6345, -102.5528],
+                    "cu": [21.5218, -77.7812],
+                    "jm": [18.1096, -77.2975],
+                    "ht": [18.9712, -72.2852],
+                    "do": [18.7357, -70.1627],
+                    "gt": [15.7835, -90.2308],
+                    "hn": [15.1991, -86.2419],
+                    "ni": [12.8654, -85.2072],
+                    "cr": [9.7489, -83.7534],
+                    "pa": [8.5380, -80.7821],
+                    "br": [-14.2350, -51.9253],
+                    "ar": [-38.4161, -63.6167],
+                    "cl": [-35.6751, -71.5430],
+                    "co": [4.5709, -74.2973],
+                    "pe": [-9.1900, -75.0152],
+                    "ve": [6.4238, -66.5897],
+                    "ec": [-1.8312, -78.1834],
+                    "bo": [-16.2902, -63.5887],
+                    "py": [-23.4425, -58.4438],
+                    "uy": [-32.5228, -55.7658],
+                    "gy": [4.8604, -58.9302],
+                    "sr": [3.9193, -56.0278],
+                    "cn": [35.8617, 104.1954],
+                    "jp": [36.2048, 138.2529],
+                    "in": [20.5937, 78.9629],
+                    "kr": [35.9078, 127.7669],
+                    "id": [-0.7893, 113.9213],
+                    "my": [4.2105, 101.9758],
+                    "th": [15.8700, 100.9925],
+                    "vn": [14.0583, 108.2772],
+                    "ph": [12.8797, 121.7740],
+                    "sg": [1.3521, 103.8198],
+                    "ru": [61.5240, 105.3188],
+                    "tr": [38.9637, 35.2433],
+                    "sa": [23.8859, 45.0792],
+                    "ae": [23.4241, 53.8478],
+                    "il": [31.0461, 34.8516],
+                    "ir": [32.4279, 53.6880],
+                    "eg": [26.8206, 30.8025],
+                    "za": [-30.5595, 22.9375],
+                    "ng": [9.0820, 8.6753],
+                    "ke": [-0.0236, 37.9062],
+                    "ma": [31.7917, -7.0926],
+                    "dz": [28.0339, 1.6596],
+                    "tn": [33.8869, 9.5375],
+                    "et": [9.1450, 40.4897],
+                    "gh": [7.9465, -1.0232],
+                    "tz": [-6.3690, 34.8888],
+                    "cm": [7.3697, 12.3547],
+                    "ci": [7.5400, -5.5471],
+                    "au": [-25.2744, 133.7751],
+                    "nz": [-40.9006, 174.8860],
+                    "fj": [-16.5782, 179.4144],
+                    "pg": [-6.3150, 143.9555],
+                    "sb": [-9.6457, 160.1562],
+                    "vu": [-15.3767, 166.9592],
+                    "nc": [-20.9043, 165.6180],
+                    "ws": [-13.7590, -172.1046]
+                },
+                // Coordonnées sphériques approximatives pour la visualisation 3D
+                sphericalCoordinates: {
+                    "europe": { lat: 50, lng: 10 },
+                    "north-america": { lat: 40, lng: -100 },
+                    "south-america": { lat: -20, lng: -60 },
+                    "asia": { lat: 30, lng: 100 },
+                    "africa": { lat: 0, lng: 20 },
+                    "oceania": { lat: -25, lng: 135 }
+                }
+            }
+        };
+        
+        // Function to detect browser language with localStorage support
+        function detectBrowserLanguage() {
+            // First check localStorage for saved preference
+            if (window.localStorage) {
+                const savedLang = localStorage.getItem('preferredLanguage');
+                if (savedLang && window.appData.availableLanguages.includes(savedLang)) {
+                    window.appData.currentLanguage = savedLang;
+                    return;
+                }
+            }
+            
+            // Otherwise detect from browser
+            const browserLang = navigator.language || navigator.userLanguage;
+            const lang = browserLang.split('-')[0];
+            if (window.appData.availableLanguages.includes(lang)) {
+                window.appData.currentLanguage = lang;
+            }
+        }
+        
+        detectBrowserLanguage();
     </script>
+
     <header class="bg-primary text-white p-4 shadow-md">
         <div class="container mx-auto flex flex-wrap items-center justify-between">
-            <h1 id="app-title" class="text-2xl font-bold">Triangle Meditation Network</h1>
+            <h1 class="text-2xl font-bold" id="app-title">Triangle Meditation Network</h1>
             <div class="flex items-center space-x-4">
-                <select id="language-selector" class="bg-white text-gray-800 rounded px-3 py-1 text-base"></select>
+                <select id="language-selector" class="bg-white text-gray-800 rounded px-3 py-1 text-base">
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                    <option value="de">Deutsch</option>
+                    <option value="it">Italiano</option>
+                    <option value="ru">Русский</option>
+                </select>
             </div>
         </div>
     </header>
+
     <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6">
-        <!-- Map container -->
+        <!-- World Map Visualization -->
         <div class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md map-container overflow-hidden">
             <div class="flex justify-between items-center mb-4">
-                <h2 id="active-triangles-title" class="text-xl font-semibold"></h2>
-                <button id="view-toggle-button" class="bg-primary hover:bg-opacity-90 text-white px-3 py-1 rounded text-sm"><span id="view-toggle-text"></span></button>
+                <h2 class="text-xl font-semibold" id="active-triangles-title">Active Triangles</h2>
+                <button id="view-toggle-button" class="bg-primary hover:bg-opacity-90 text-white px-3 py-1 rounded text-sm">
+                    <span id="view-toggle-text">View Earth from Space</span>
+                </button>
             </div>
-            <div id="map-container" class="w-full h-[400px] md:h-[500px] relative"><svg id="map" class="w-full h-full"></svg></div>
+            
+            <!-- Map Container (standard view) -->
+            <div id="map-container" class="w-full h-[400px] md:h-[500px] relative">
+                <svg id="map" class="w-full h-full"></svg>
+            </div>
+            
+            <!-- Earth from Space Container (3D view) -->
             <div id="earth-container" class="w-full h-[400px] md:h-[500px] relative hidden">
                 <div class="earth-view">
                     <canvas id="earth-canvas"></canvas>
-                    <div class="earth-info"><span id="earth-info-text"></span></div>
+                    <div class="earth-info">
+                        <span id="earth-info-text">Meditation Energy: 0 triangles active</span>
+                    </div>
                 </div>
             </div>
+            
             <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-                <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 id="participants-label" class="font-semibold"></h3><p id="participants-count" class="text-xl"></p></div>
-                <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 id="triangles-label" class="font-semibold"></h3><p id="triangles-count" class="text-xl"></p></div>
-                <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded"><h3 id="waiting-label" class="font-semibold"></h3><p id="waiting-count" class="text-xl"></p></div>
+                <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                    <h3 class="font-semibold" id="participants-label">Current Participants</h3>
+                    <p id="participants-count" class="text-xl">0</p>
+                </div>
+                <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                    <h3 class="font-semibold" id="triangles-label">Triangles Formed</h3>
+                    <p id="triangles-count" class="text-xl">0</p>
+                </div>
+                <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                    <h3 class="font-semibold" id="waiting-label">Waiting Participants</h3>
+                    <p id="waiting-count" class="text-xl">0</p>
+                </div>
             </div>
         </div>
-        <!-- Registration panel -->
+
+        <!-- Registration Panel -->
         <div class="w-full md:w-1/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-            <div id="registration-form" class="flex flex-col items-center gap-4">
-                <h2 id="welcome-text" class="text-xl font-semibold text-center"></h2>
+            <div id="registration-form" class="flex flex-col items-center justify-center gap-4">
+                <h2 class="text-xl font-semibold text-center" id="welcome-text">Connect with others through meditation triangles</h2>
+                
+                <!-- User Profile Form -->
                 <div class="w-full p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <label id="user-name-label" for="user-name" class="block mb-2"></label>
-                    <input id="user-name" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-base text-gray-800 dark:text-gray-200" required />
-                    <label id="continent-label" for="user-continent" class="block mb-2 mt-4"></label>
-                    <select id="user-continent" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-base text-gray-800 dark:text-gray-200"><option value="" id="select-option"></option></select>
-                    <div id="country-container" class="hidden mt-4"><label id="country-label" for="user-country" class="block mb-2"></label><select id="user-country" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-base text-gray-800 dark:text-gray-200"><option value=""></option></select></div>
-                    <div id="city-container" class="hidden mt-4"><label id="city-label" for="user-city" class="block mb-2"></label><input id="user-city" class="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-base text-gray-800 dark:text-gray-200" required /><p id="city-help" class="text-xs text-gray-500 mt-1"></p><button id="geolocate-button" class="mt-2 text-sm text-primary flex items-center"><svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span id="geolocate-text"></span></button></div>
-                    <button id="join-network" class="w-full bg-primary hover:bg-opacity-90 text-white font-bold py-2 px-4 rounded flex justify-center items-center mt-6"><span id="join-text"></span></button>
+                    <div class="mb-4">
+                        <label for="user-name" class="block mb-2" id="user-name-label">Your Name</label>
+                        <input type="text" id="user-name" class="w-full p-2 border rounded text-base text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700" required>
+                    </div>
+                    
+                    <!-- Hierarchical location selection -->
+                    <div class="mb-4">
+                        <label for="user-continent" class="block mb-2" id="continent-label">Continent</label>
+                        <select id="user-continent" class="w-full p-2 border rounded text-base text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700">
+                            <option value="" id="select-option">-- Select --</option>
+                            <!-- Options populated by JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4 hidden" id="country-container">
+                        <label for="user-country" class="block mb-2" id="country-label">Country</label>
+                        <select id="user-country" class="w-full p-2 border rounded text-base text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700">
+                            <option value="">-- Select --</option>
+                            <!-- Options populated by JavaScript based on continent selection -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4 hidden" id="city-container">
+                        <label for="user-city" class="block mb-2" id="city-label">City</label>
+                        <input type="text" id="user-city" class="w-full p-2 border rounded text-base text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700" required>
+                        <p class="text-xs text-gray-500 mt-1" id="city-help">Enter any city name - coordinates will be determined automatically</p>
+                        
+                        <button id="geolocate-button" class="mt-2 text-sm text-primary flex items-center">
+                            <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span id="geolocate-text">Use My Location</span>
+                        </button>
+                    </div>
+                    
+                    <button id="join-network" class="w-full bg-primary hover:bg-opacity-90 text-white font-bold py-2 px-4 rounded flex justify-center items-center">
+                        <span id="join-text">Join Network</span>
+                    </button>
                 </div>
             </div>
-            <div id="status-panel" class="hidden flex flex-col items-center gap-4">
-                <div class="w-full p-4 rounded-lg bg-gray-100 dark:bg-gray-700"><h3 id="status-title" class="font-semibold text-center mb-2"></h3><p id="status-message" class="text-center mb-4"></p><p id="participant-info" class="mb-2"></p><p id="triangle-status" class="mb-2"></p><p id="time-remaining" class="text-primary"></p><div id="position-timer" class="text-sm text-gray-500 mt-2"></div><button id="leave-network" class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"></button></div>
+            
+            <!-- Status Panel (after registration) -->
+            <div id="status-panel" class="hidden flex flex-col items-center justify-center gap-4">
+                <div class="w-full p-4 rounded-lg bg-gray-100 dark:bg-gray-700">
+                    <h3 class="font-semibold text-center mb-2" id="status-title">Network Status</h3>
+                    <p id="status-message" class="text-center mb-4">You have joined the meditation network</p>
+                    
+                    <div class="text-center mb-4">
+                        <p id="participant-info" class="mb-2">Your coordinates: [0, 0]</p>
+                        <p id="triangle-status" class="mb-2">Waiting to join a triangle... Need more participants.</p>
+                        <p id="time-remaining" class="mt-4 text-primary">Your position will be maintained for 20 minutes.</p>
+                        <div id="position-timer" class="text-sm text-gray-500 mt-2">20:00</div>
+                    </div>
+                    
+                    <button id="leave-network" class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
+                        Leave Network
+                    </button>
+                </div>
             </div>
         </div>
     </main>
-    <footer class="bg-gray-100 dark:bg-gray-800 p-4 text-center text-gray-600 dark:text-gray-400 text-sm"><p>© 2023 Triangle Meditation Network</p></footer>
-    <script>
-        // App data and state
-        window.appData = { userProfile:null, participants:[], triangles:[], availableLanguages:['en','fr','es','de','it','ru'], currentLanguage:'en', translations:{/* objet translations complet, sans les clés startSimulation et stopSimulation */}, geoData:{/* ton geoData complet */} };
-        window.earthScene = { scene:null,camera:null,renderer:null,controls:null,earth:null,stars:[],energyPoints:[],energyLines:[],raycaster:null,mouse:null,animationId:null };
-        // All functions from your original code (initializeMap, init3DEarth, addContinentsToEarth, createStarField, animate3DEarth, resizeEarthView, update3DEarthVisualization, initializeGeoSelectors, getCityCoordinates, getUserLocation, joinNetwork, leaveNetwork, startPositionTimer, loadUserData, formTriangles, findUserTriangle, getRandomColor, updateTriangles, updateStatisticsDisplay, updateLanguage, getText, handleZoom, updateTriangleScaling, getRandomCoordinatesForRegion)
-        // They remain exactly as in your original 2200 lines, with the two modifications:
-        // - OrbitControls import and setup in init3DEarth()
-        // - update3DEarthVisualization() uses true lat/lng coordinates
 
-        document.addEventListener('DOMContentLoaded',()=>{
-            detectBrowserLanguage();
+    <footer class="bg-gray-100 dark:bg-gray-800 p-4 text-center text-gray-600 dark:text-gray-400 text-sm">
+        <p>© 2023 Triangle Meditation Network</p>
+    </footer>
+
+    <script>
+        // Stockage global pour la scène Three.js
+        window.earthScene = {
+            scene: null,
+            camera: null,
+            renderer: null,
+            earth: null,
+            stars: [],
+            energyPoints: [],
+            energyLines: [],
+            raycaster: null,
+            mouse: null,
+            animationId: null
+        };
+        
+        // Main application logic
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the language
             updateLanguage(window.appData.currentLanguage);
-            const langSel=document.getElementById('language-selector'); langSel.value=window.appData.currentLanguage;
-            langSel.addEventListener('change',e=>updateLanguage(e.target.value));
-            initializeMap(); init3DEarth(); initializeGeoSelectors();
-            setInterval(()=>{ updateTriangles(); if(window.appData.earthViewActive) update3DEarthVisualization(); },3000);
-            document.getElementById('join-network').addEventListener('click',joinNetwork);
-            document.getElementById('geolocate-button').addEventListener('click',getUserLocation);
-            document.getElementById('view-toggle-button').addEventListener('click',toggleVisualization);
-            document.getElementById('leave-network').addEventListener('click',leaveNetwork);
-            window.addEventListener('resize',()=>{ if(window.appData.earthViewActive) resizeEarthView(); });
+            
+            // Set up language selector
+            document.getElementById('language-selector').value = window.appData.currentLanguage;
+            document.getElementById('language-selector').addEventListener('change', function() {
+                updateLanguage(this.value);
+            });
+            
+            // Initialize the map
+            initializeMap();
+            
+            // Initialize the 3D Earth (but don't show it yet)
+            init3DEarth();
+            
+            // Set up the geographic selection
+            initializeGeoSelectors();
+            
+            // Update triangles regularly to ensure animations run smoothly
+            setInterval(() => {
+                updateTriangles();
+                if (window.appData.earthViewActive) {
+                    update3DEarthVisualization();
+                }
+            }, 3000);
+            
+            // Register button handlers
+            document.getElementById('join-network').addEventListener('click', joinNetwork);
+            document.getElementById('geolocate-button').addEventListener('click', getUserLocation);
+            document.getElementById('view-toggle-button').addEventListener('click', toggleVisualization);
+            
+            // Add leave network button handler
+            if (document.getElementById('leave-network')) {
+                document.getElementById('leave-network').addEventListener('click', leaveNetwork);
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (window.appData.earthViewActive) {
+                    resizeEarthView();
+                }
+            });
+            
+            // Load user data from localStorage if available
             loadUserData();
         });
+        
+        // Initialize the 3D Earth visualization
+        function init3DEarth() {
+            const container = document.getElementById('earth-canvas');
+            
+            // Set up scene
+            const scene = new THREE.Scene();
+            window.earthScene.scene = scene;
+            
+            // Set up camera
+            const camera = new THREE.PerspectiveCamera(
+                45, // Field of view
+                container.clientWidth / container.clientHeight, // Aspect ratio
+                0.1, // Near clipping plane
+                1000 // Far clipping plane
+            );
+            camera.position.z = 5;
+            window.earthScene.camera = camera;
+            
+            // Set up renderer
+            const renderer = new THREE.WebGLRenderer({ 
+                canvas: container,
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            window.earthScene.renderer = renderer;
+            
+            // Create Earth with texture
+            const earthGeometry = new THREE.SphereGeometry(2, 64, 64);
+            
+            // Create a dynamic texture loader for Earth
+            const textureLoader = new THREE.TextureLoader();
+            
+            // Méthode alternative utilisant un dégradé pour la texture de la Terre
+            const earthMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2233aa,
+                shininess: 25,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            scene.add(earth);
+            window.earthScene.earth = earth;
+            
+            // Add atmosphere glow
+            const atmosphereGeometry = new THREE.SphereGeometry(2.1, 64, 64);
+            const atmosphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4488ff,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.BackSide
+            });
+            const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+            scene.add(atmosphere);
+            
+            // Add continents
+            addContinentsToEarth(earth);
+            
+            // Add stars to the background
+            createStarField(scene, 1000);
+            
+            // Add ambient light
+            const ambientLight = new THREE.AmbientLight(0x333333);
+            scene.add(ambientLight);
+            
+            // Add directional light (sun-like)
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(5, 3, 5);
+            scene.add(sunLight);
+            
+            // Raycaster for potential interactions
+            window.earthScene.raycaster = new THREE.Raycaster();
+            window.earthScene.mouse = new THREE.Vector2();
+            
+            // Start animation
+            animate3DEarth();
+        }
+        
+        // Add simplified continents to the Earth
+        function addContinentsToEarth(earth) {
+            // North America
+            addContinent(earth, 45, -100, 0.8, 0.6);
+            
+            // South America
+            addContinent(earth, -20, -60, 0.6, 0.7);
+            
+            // Europe
+            addContinent(earth, 50, 10, 0.4, 0.3);
+            
+            // Africa
+            addContinent(earth, 0, 20, 0.7, 0.8);
+            
+            // Asia
+            addContinent(earth, 40, 90, 1.0, 0.9);
+            
+            // Australia
+            addContinent(earth, -25, 135, 0.5, 0.4);
+        }
+        
+        // Helper function to add a continent
+        function addContinent(earth, lat, lng, sizeX, sizeY) {
+            // Convert lat/lng to 3D position
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = (lng + 180) * Math.PI / 180;
+            
+            const position = new THREE.Vector3();
+            position.x = -2 * Math.sin(phi) * Math.cos(theta);
+            position.y = 2 * Math.cos(phi);
+            position.z = 2 * Math.sin(phi) * Math.sin(theta);
+            
+            // Create a sphere for the continent
+            const continentGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+            const continentMaterial = new THREE.MeshPhongMaterial({
+                color: 0x39805f, // Greenish color for land
+                shininess: 10
+            });
+            const continent = new THREE.Mesh(continentGeometry, continentMaterial);
+            
+            // Adjust the size and position
+            continent.position.copy(position);
+            continent.scale.set(sizeX * 8, sizeY * 8, 0.1);
+            
+            // Make the continent follow the curvature of the Earth
+            continent.lookAt(new THREE.Vector3(0, 0, 0));
+            
+            // Add the continent to Earth
+            earth.add(continent);
+        }
+        
+        // Create a star field
+        function createStarField(scene, count) {
+            for (let i = 0; i < count; i++) {
+                const geometry = new THREE.SphereGeometry(0.03, 8, 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xffffff, 
+                    transparent: true,
+                    opacity: Math.random() * 0.5 + 0.5
+                });
+                
+                const star = new THREE.Mesh(geometry, material);
+                
+                // Random position
+                const radius = 90 + Math.random() * 10;
+                const theta = 2 * Math.PI * Math.random();
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                star.position.x = radius * Math.sin(phi) * Math.cos(theta);
+                star.position.y = radius * Math.sin(phi) * Math.sin(theta);
+                star.position.z = radius * Math.cos(phi);
+                
+                scene.add(star);
+                window.earthScene.stars.push(star);
+            }
+        }
+        
+        // Animation loop for the 3D Earth
+        function animate3DEarth() {
+            if (!window.appData.earthViewActive) {
+                window.earthScene.animationId = requestAnimationFrame(animate3DEarth);
+                return;
+            }
+            
+            window.earthScene.animationId = requestAnimationFrame(animate3DEarth);
+            
+            // Rotate the Earth
+            if (window.earthScene.earth) {
+                window.earthScene.earth.rotation.y += 0.001;
+                
+                // Make energy points pulse
+                window.earthScene.energyPoints.forEach((point, index) => {
+                    const scale = 1 + 0.2 * Math.sin(Date.now() * 0.002 + index);
+                    point.scale.set(scale, scale, scale);
+                });
+            }
+            
+            // Render the scene
+            window.earthScene.renderer.render(window.earthScene.scene, window.earthScene.camera);
+        }
+        
+        // Resize handler for the Earth view
+        function resizeEarthView() {
+            const container = document.getElementById('earth-canvas');
+            if (!container || !window.earthScene.camera || !window.earthScene.renderer) return;
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            window.earthScene.camera.aspect = width / height;
+            window.earthScene.camera.updateProjectionMatrix();
+            
+            window.earthScene.renderer.setSize(width, height);
+        }
+        
+        // Update the 3D Earth visualization with current triangle data
+        function update3DEarthVisualization() {
+            if (!window.appData.earthViewActive || !window.earthScene.earth) return;
+            
+            // Clear existing energy points and lines
+            window.earthScene.energyPoints.forEach(point => {
+                if (point.parent) point.parent.remove(point);
+            });
+            window.earthScene.energyLines.forEach(line => {
+                if (line.parent) line.parent.remove(line);
+            });
+            
+            window.earthScene.energyPoints = [];
+            window.earthScene.energyLines = [];
+            
+            // Create energy points for each participant
+            const participantPoints = {};
+            
+            window.appData.participants.forEach(participant => {
+                // Determine which continent the participant is from
+                const continent = participant.continent;
+                const countryCode = participant.country;
+                
+                // Get spherical coordinates
+                let sphericalPos;
+                if (window.appData.geoData.sphericalCoordinates[continent]) {
+                    sphericalPos = window.appData.geoData.sphericalCoordinates[continent];
+                } else {
+                    // Default position if continent not found
+                    sphericalPos = { lat: 0, lng: 0 };
+                }
+                
+                // Add some randomness to positions within continent
+                const lat = sphericalPos.lat + (Math.random() * 20 - 10);
+                const lng = sphericalPos.lng + (Math.random() * 20 - 10);
+                
+                // Convert to 3D coordinates
+                const phi = (90 - lat) * Math.PI / 180;
+                const theta = (lng + 180) * Math.PI / 180;
+                
+                const position = new THREE.Vector3();
+                position.x = -2 * Math.sin(phi) * Math.cos(theta);
+                position.y = 2 * Math.cos(phi);
+                position.z = 2 * Math.sin(phi) * Math.sin(theta);
+                
+                // Create energy point
+                const pointGeometry = new THREE.SphereGeometry(0.03, 16, 16);
+                
+                // Find if participant is in a triangle
+                const triangleIndex = window.appData.triangles.findIndex(triangle => 
+                    triangle.members.some(member => member.id === participant.id)
+                );
+                
+                let pointColor;
+                if (triangleIndex >= 0) {
+                    // Get color from triangle
+                    const triangleColor = window.appData.triangles[triangleIndex].color;
+                    pointColor = new THREE.Color(triangleColor);
+                } else {
+                    // Gray for waiting participants
+                    pointColor = new THREE.Color(0x999999);
+                }
+                
+                const pointMaterial = new THREE.MeshPhongMaterial({
+                    color: pointColor,
+                    emissive: pointColor,
+                    emissiveIntensity: 0.5,
+                    shininess: 50
+                });
+                
+                const point = new THREE.Mesh(pointGeometry, pointMaterial);
+                point.position.copy(position);
+                
+                // Check if this is the user's point
+                const isUserPoint = window.appData.userProfile && participant.id === window.appData.userProfile.id;
+                if (isUserPoint) {
+                    // Make user's point larger and brighter
+                    const userColor = new THREE.Color(0xFF5722);
+                    point.material.color.set(userColor);
+                    point.material.emissive.set(userColor);
+                    point.material.emissiveIntensity = 0.8;
+                    point.scale.set(1.5, 1.5, 1.5);
+                }
+                
+                window.earthScene.earth.add(point);
+                window.earthScene.energyPoints.push(point);
+                
+                // Store point for triangle connections
+                participantPoints[participant.id] = point;
+            });
+            
+            // Create energy lines for triangles
+            window.appData.triangles.forEach(triangle => {
+                if (triangle.members.length >= 2) {
+                    for (let i = 0; i < triangle.members.length; i++) {
+                        const member1 = triangle.members[i];
+                        const member2 = triangle.members[(i + 1) % triangle.members.length];
+                        
+                        const point1 = participantPoints[member1.id];
+                        const point2 = participantPoints[member2.id];
+                        
+                        if (point1 && point2) {
+                            // Create line material with triangle color
+                            const lineColor = new THREE.Color(triangle.color);
+                            const lineMaterial = new THREE.LineBasicMaterial({
+                                color: lineColor,
+                                transparent: true,
+                                opacity: 0.6
+                            });
+                            
+                            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                                point1.position,
+                                point2.position
+                            ]);
+                            
+                            const line = new THREE.Line(lineGeometry, lineMaterial);
+                            window.earthScene.earth.add(line);
+                            window.earthScene.energyLines.push(line);
+                        }
+                    }
+                }
+            });
+            
+            // Update info text
+            const earthInfoText = document.getElementById('earth-info-text');
+            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
+            earthInfoText.textContent = infoText;
+        }
+        
+        // Initialize the geographic selectors with hierarchy
+        function initializeGeoSelectors() {
+            const continentSelect = document.getElementById('user-continent');
+            const countrySelect = document.getElementById('user-country');
+            const cityInput = document.getElementById('user-city');
+            const countryContainer = document.getElementById('country-container');
+            const cityContainer = document.getElementById('city-container');
+            
+            // Populate continents
+            window.appData.geoData.continents.forEach(continent => {
+                const option = document.createElement('option');
+                option.value = continent.id;
+                option.textContent = continent.name;
+                continentSelect.appendChild(option);
+            });
+            
+            // When continent changes, update country options
+            continentSelect.addEventListener('change', function() {
+                const selectedContinent = this.value;
+                
+                // Clear and hide dependent fields if continent is not selected
+                if (!selectedContinent) {
+                    countrySelect.innerHTML = `<option value="">${getText('selectOption')}</option>`;
+                    countryContainer.classList.add('hidden');
+                    cityContainer.classList.add('hidden');
+                    return;
+                }
+                
+                // Show country selection
+                countryContainer.classList.remove('hidden');
+                
+                // Clear previous options
+                countrySelect.innerHTML = `<option value="">${getText('selectOption')}</option>`;
+                
+                // Add new country options
+                const countries = window.appData.geoData.countries[selectedContinent] || [];
+                countries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.id;
+                    option.textContent = country.name;
+                    countrySelect.appendChild(option);
+                });
+            });
+            
+            // When country changes, show city input
+            countrySelect.addEventListener('change', function() {
+                const selectedCountry = this.value;
+                
+                // Clear and hide city field if country is not selected
+                if (!selectedCountry) {
+                    cityInput.value = '';
+                    cityContainer.classList.add('hidden');
+                    return;
+                }
+                
+                // Show city selection
+                cityContainer.classList.remove('hidden');
+            });
+        }
+        
+        // Get coordinates for a city using geocoding API
+        async function getCityCoordinates(city, country) {
+            try {
+                // Use the OpenStreetMap Nominatim API for geocoding
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&format=json&limit=1`
+                );
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    const coordinates = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                    return coordinates;
+                }
+                
+                // If city not found, use country coordinates with random offset
+                if (window.appData.geoData.coordinates[country]) {
+                    const countryCoords = window.appData.geoData.coordinates[country];
+                    return [
+                        countryCoords[0] + (Math.random() * 0.5 - 0.25),
+                        countryCoords[1] + (Math.random() * 0.5 - 0.25)
+                    ];
+                }
+                
+                throw new Error('Location not found');
+            } catch (error) {
+                console.error('Error getting city coordinates:', error);
+                throw error;
+            }
+        }
+        
+        // Use browser's geolocation API
+        function getUserLocation() {
+            const geolocateButton = document.getElementById('geolocate-button');
+            const geolocateText = document.getElementById('geolocate-text');
+            
+            // Show loading state
+            const originalText = geolocateText.textContent;
+            geolocateText.textContent = getText('locating');
+            geolocateButton.disabled = true;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        try {
+                            // Use reverse geocoding to get location details
+                            const response = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`
+                            );
+                            const data = await response.json();
+                            
+                            // Determine continent based on country code
+                            let continent = '';
+                            for (const [continentId, countries] of Object.entries(window.appData.geoData.countries)) {
+                                if (countries.some(c => c.id.toLowerCase() === data.address.country_code?.toLowerCase())) {
+                                    continent = continentId;
+                                    break;
+                                }
+                            }
+                            
+                            if (continent) {
+                                // Set continent
+                                document.getElementById('user-continent').value = continent;
+                                document.getElementById('user-continent').dispatchEvent(new Event('change'));
+                                
+                                // Wait for country dropdown to populate
+                                setTimeout(() => {
+                                    // Find country in dropdown
+                                    const countrySelect = document.getElementById('user-country');
+                                    Array.from(countrySelect.options).forEach((option, index) => {
+                                        if (option.value.toLowerCase() === data.address.country_code?.toLowerCase()) {
+                                            countrySelect.selectedIndex = index;
+                                            countrySelect.dispatchEvent(new Event('change'));
+                                        }
+                                    });
+                                    
+                                    // Set city
+                                    const city = data.address.city || data.address.town || data.address.village || data.address.hamlet || '';
+                                    document.getElementById('user-city').value = city;
+                                    
+                                    // Reset button
+                                    geolocateText.textContent = originalText;
+                                    geolocateButton.disabled = false;
+                                }, 300);
+                            } else {
+                                // Reset button with error
+                                geolocateText.textContent = originalText;
+                                geolocateButton.disabled = false;
+                                alert(getText('locationError'));
+                            }
+                        } catch (error) {
+                            console.error("Error in reverse geocoding:", error);
+                            geolocateText.textContent = originalText;
+                            geolocateButton.disabled = false;
+                            alert(getText('locationError'));
+                        }
+                    },
+                    (error) => {
+                        console.error("Geolocation error:", error);
+                        geolocateText.textContent = originalText;
+                        geolocateButton.disabled = false;
+                        alert(getText('locationError'));
+                    }
+                );
+            } else {
+                geolocateText.textContent = originalText;
+                geolocateButton.disabled = false;
+                alert(getText('locationError'));
+            }
+        }
+        
+        // Join the meditation network
+        async function joinNetwork() {
+            const userName = document.getElementById('user-name').value;
+            const continent = document.getElementById('user-continent').value;
+            const country = document.getElementById('user-country').value;
+            const city = document.getElementById('user-city').value;
+            
+            // Validate inputs
+            if (!userName) {
+                alert(getText('enterName'));
+                return;
+            }
+            
+            if (!continent) {
+                alert(getText('selectContinent'));
+                return;
+            }
+            
+            if (!country) {
+                alert(getText('selectCountry'));
+                return;
+            }
+            
+            if (!city) {
+                alert(getText('enterCity'));
+                return;
+            }
+            
+            // Show loading state
+            const joinButton = document.getElementById('join-network');
+            const joinText = document.getElementById('join-text');
+            const originalText = joinText.textContent;
+            
+            joinButton.disabled = true;
+            joinText.innerHTML = `<div class="loading-spinner"></div> ${originalText}`;
+            
+            try {
+                // Get coordinates for the city
+                const coordinates = await getCityCoordinates(city, country);
+                
+                // Create user profile
+                window.appData.userProfile = {
+                    id: 'user-' + Date.now(),
+                    name: userName,
+                    continent: continent,
+                    country: country,
+                    city: city,
+                    coordinates: coordinates,
+                    language: window.appData.currentLanguage,
+                    joinedAt: new Date().getTime(),
+                    expiresAt: new Date().getTime() + (20 * 60 * 1000) // 20 minutes from now
+                };
+                
+                // Save to localStorage if available
+                if (window.localStorage) {
+                    localStorage.setItem('userProfile', JSON.stringify(window.appData.userProfile));
+                }
+                
+                // Add user to participants
+                window.appData.participants.push(window.appData.userProfile);
+                
+                // Form triangles
+                formTriangles();
+                
+                // Hide registration form and show status panel
+                document.getElementById('registration-form').classList.add('hidden');
+                document.getElementById('status-panel').classList.remove('hidden');
+                
+                // Update participant info
+                document.getElementById('participant-info').textContent = 
+                    `${getText('yourCoordinates')}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}]`;
+                
+                // Update triangle status
+                const userTriangle = findUserTriangle();
+                if (userTriangle) {
+                    document.getElementById('triangle-status').textContent = 
+                        `You are part of triangle #${userTriangle.id}`;
+                } else {
+                    document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
+                }
+                
+                // Update time remaining message
+                document.getElementById('time-remaining').textContent = getText('timeRemaining');
+                
+                // Start the countdown timer for the position
+                startPositionTimer();
+                
+                // Update statistics on the map
+                updateStatisticsDisplay();
+                
+                // Update 3D Earth visualization if active
+                if (window.appData.earthViewActive) {
+                    update3DEarthVisualization();
+                }
+            } catch (error) {
+                console.error("Error joining network:", error);
+                
+                joinButton.disabled = false;
+                joinText.textContent = originalText;
+                
+                alert(getText('locationError'));
+            }
+        }
+        
+        // Leave the network
+        function leaveNetwork() {
+            if (!window.appData.userProfile) return;
+            
+            // Remove user from participants
+            const index = window.appData.participants.findIndex(p => p.id === window.appData.userProfile.id);
+            if (index !== -1) {
+                window.appData.participants.splice(index, 1);
+            }
+            
+            // Clear user profile
+            window.appData.userProfile = null;
+            
+            // Clear from localStorage if available
+            if (window.localStorage) {
+                localStorage.removeItem('userProfile');
+            }
+            
+            // Re-form triangles
+            formTriangles();
+            
+            // Reset UI
+            document.getElementById('status-panel').classList.add('hidden');
+            document.getElementById('registration-form').classList.remove('hidden');
+            
+            // Update statistics
+            updateStatisticsDisplay();
+            
+            // Update 3D Earth visualization if active
+            if (window.appData.earthViewActive) {
+                update3DEarthVisualization();
+            }
+        }
+        
+        // Start the 20-minute countdown timer for the user's position
+        function startPositionTimer() {
+            if (!window.appData.userProfile) return;
+            
+            const timerElement = document.getElementById('position-timer');
+            let timeLeft = 20 * 60; // 20 minutes in seconds
+            
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update expiration time in profile
+                if (window.appData.userProfile) {
+                    window.appData.userProfile.expiresAt = new Date().getTime() + (timeLeft * 1000);
+                    
+                    // Save to localStorage if available
+                    if (window.localStorage) {
+                        localStorage.setItem('userProfile', JSON.stringify(window.appData.userProfile));
+                    }
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    
+                    // Remove user from participants
+                    const index = window.appData.participants.findIndex(p => p.id === window.appData.userProfile.id);
+                    if (index !== -1) {
+                        window.appData.participants.splice(index, 1);
+                    }
+                    
+                    // Re-form triangles
+                    formTriangles();
+                    
+                    // Reset UI
+                    document.getElementById('status-panel').classList.add('hidden');
+                    document.getElementById('registration-form').classList.remove('hidden');
+                    
+                    // Clear user profile
+                    window.appData.userProfile = null;
+                    
+                    // Clear from localStorage
+                    if (window.localStorage) {
+                        localStorage.removeItem('userProfile');
+                    }
+                    
+                    // Update statistics
+                    updateStatisticsDisplay();
+                    
+                    // Update 3D Earth visualization if active
+                    if (window.appData.earthViewActive) {
+                        update3DEarthVisualization();
+                    }
+                }
+            }, 1000);
+        }
+        
+        // Load user data from localStorage
+        function loadUserData() {
+            if (!window.localStorage) return false;
+            
+            try {
+                const savedProfile = localStorage.getItem('userProfile');
+                if (savedProfile) {
+                    const profile = JSON.parse(savedProfile);
+                    
+                    // Check if the profile is still valid
+                    if (profile.expiresAt > Date.now()) {
+                        window.appData.userProfile = profile;
+                        
+                        // Add user to participants
+                        window.appData.participants.push(profile);
+                        
+                        // Form triangles
+                        formTriangles();
+                        
+                        // Hide registration form and show status panel
+                        document.getElementById('registration-form').classList.add('hidden');
+                        document.getElementById('status-panel').classList.remove('hidden');
+                        
+                        // Update participant info
+                        document.getElementById('participant-info').textContent = 
+                            `${getText('yourCoordinates')}: [${profile.coordinates[0].toFixed(2)}, ${profile.coordinates[1].toFixed(2)}]`;
+                        
+                        // Update triangle status
+                        const userTriangle = findUserTriangle();
+                        if (userTriangle) {
+                            document.getElementById('triangle-status').textContent = 
+                                `You are part of triangle #${userTriangle.id}`;
+                        } else {
+                            document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
+                        }
+                        
+                        // Update time remaining
+                        const timeRemaining = Math.round((profile.expiresAt - Date.now()) / 1000);
+                        const minutes = Math.ceil(timeRemaining / 60);
+                        document.getElementById('time-remaining').textContent = getText('timeRemaining');
+                        
+                        // Restart the countdown timer
+                        startPositionTimer();
+                        
+                        return true;
+                    } else {
+                        // Profile expired, remove it
+                        localStorage.removeItem('userProfile');
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading user data:", error);
+                localStorage.removeItem('userProfile');
+            }
+            
+            return false;
+        }
+        
+        // Find which triangle the user belongs to
+        function findUserTriangle() {
+            if (!window.appData.userProfile) return null;
+            
+            const userId = window.appData.userProfile.id;
+            return window.appData.triangles.find(triangle => 
+                triangle.members.some(member => member.id === userId)
+            );
+        }
+        
+        // Form triangles from available participants
+        function formTriangles() {
+            // Make a copy of participants to work with
+            const availableParticipants = [...window.appData.participants];
+            
+            // Clear existing triangles
+            window.appData.triangles = [];
+            
+            // Form complete triangles (3 participants each)
+            while (availableParticipants.length >= 3) {
+                const triangleMembers = [];
+                
+                // Take 3 participants for a triangle
+                for (let i = 0; i < 3; i++) {
+                    // Pick a random participant for spontaneous triangles
+                    const randomIndex = Math.floor(Math.random() * availableParticipants.length);
+                    triangleMembers.push(availableParticipants.splice(randomIndex, 1)[0]);
+                }
+                
+                // Create a new triangle
+                const triangle = {
+                    id: window.appData.triangles.length + 1,
+                    members: triangleMembers,
+                    color: getRandomColor(),
+                    createdAt: new Date().getTime()
+                };
+                
+                // Add triangle to the list
+                window.appData.triangles.push(triangle);
+            }
+            
+            // The remaining participants (0, 1, or 2) will wait for more participants
+            updateTriangles();
+            updateStatisticsDisplay();
+            
+            // Update 3D Earth visualization if active
+            if (window.appData.earthViewActive) {
+                update3DEarthVisualization();
+            }
+        }
+        
+        // Get a random vibrant color for triangles
+        function getRandomColor() {
+            const colors = [
+                '#4A63E3', // Blue
+                '#E34A5F', // Red
+                '#7A42F4', // Purple
+                '#42F4A1', // Green
+                '#F4CA42', // Yellow
+                '#F47642'  // Orange
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        // Update statistics display
+        function updateStatisticsDisplay() {
+            document.getElementById('participants-count').textContent = window.appData.participants.length;
+            document.getElementById('triangles-count').textContent = window.appData.triangles.length;
+            document.getElementById('waiting-count').textContent = window.appData.participants.length % 3;
+            
+            // Update Earth info text
+            const earthInfoText = document.getElementById('earth-info-text');
+            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
+            earthInfoText.textContent = infoText;
+            
+            // Update user's triangle status if logged in
+            if (window.appData.userProfile) {
+                const userTriangle = findUserTriangle();
+                if (userTriangle) {
+                    document.getElementById('triangle-status').textContent = 
+                        `You are part of triangle #${userTriangle.id}`;
+                } else {
+                    document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
+                }
+            }
+        }
+        
+        // Function to update all text elements based on selected language
+        function updateLanguage(lang) {
+            window.appData.currentLanguage = lang;
+            
+            // Helper function to update element text
+            const updateElementText = (id, textKey) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = getText(textKey);
+            };
+            
+            // Update language selector
+            document.getElementById('language-selector').value = lang;
+            
+            // Update UI text elements
+            updateElementText('app-title', 'appTitle');
+            updateElementText('welcome-text', 'welcome');
+            updateElementText('user-name-label', 'userName');
+            updateElementText('continent-label', 'continent');
+            updateElementText('country-label', 'country');
+            updateElementText('city-label', 'city');
+            updateElementText('city-help', 'cityHelp');
+            updateElementText('join-text', 'join');
+            updateElementText('active-triangles-title', 'activeTriangles');
+            updateElementText('participants-label', 'participants');
+            updateElementText('triangles-label', 'trianglesFormed');
+            updateElementText('waiting-label', 'waitingParticipants');
+            updateElementText('status-title', 'networkStatus');
+            updateElementText('select-option', 'selectOption');
+            updateElementText('geolocate-text', 'useMyLocation');
+            
+            // Update Earth view button text based on current state
+            const viewToggleText = document.getElementById('view-toggle-text');
+            if (window.appData.earthViewActive) {
+                viewToggleText.textContent = getText('returnToMap');
+            } else {
+                viewToggleText.textContent = getText('viewEarthSpace');
+            }
+            
+            // Update Earth info text
+            const earthInfoText = document.getElementById('earth-info-text');
+            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
+            earthInfoText.textContent = infoText;
+            
+            // Update dynamic text if user is registered
+            if (window.appData.userProfile) {
+                const coordinates = window.appData.userProfile.coordinates;
+                document.getElementById('participant-info').textContent = 
+                    `${getText('yourCoordinates')}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}]`;
+                document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
+                document.getElementById('time-remaining').textContent = getText('timeRemaining');
+                document.getElementById('status-message').textContent = getText('joinedNetwork');
+            }
+            
+            // Update placeholders and options
+            const countrySelect = document.getElementById('user-country');
+            if (countrySelect.options.length > 0) {
+                countrySelect.options[0].textContent = getText('selectOption');
+            }
+            
+            // Save language preference to localStorage if available
+            if (window.localStorage) {
+                localStorage.setItem('preferredLanguage', lang);
+            }
+        }
+        
+        // Helper function to get translated text
+        function getText(key) {
+            const lang = window.appData.currentLanguage;
+            if (window.appData.translations[lang] && window.appData.translations[lang][key]) {
+                return window.appData.translations[lang][key];
+            }
+            return window.appData.translations['en'][key] || key;
+        }
+        
+        // Global variables for map rendering
+        window.mapState = {
+            svg: null,
+            mapLayer: null,
+            trianglesLayer: null,
+            projection: null,
+            path: null,
+            width: 0,
+            height: 0,
+            zoom: null
+        };
+        
+        // World map initialization
+        function initializeMap() {
+            const container = document.getElementById('map-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            window.mapState.width = width;
+            window.mapState.height = height;
+            
+            // Create SVG
+            const svg = d3.select('#map')
+                .attr('width', width)
+                .attr('height', height);
+            window.mapState.svg = svg;
+            
+            // Define projection
+            const projection = d3.geoNaturalEarth1()
+                .scale((width / 6.28))
+                .translate([width / 2, height / 2]);
+            window.mapState.projection = projection;
+            
+            // Define path generator
+            const path = d3.geoPath().projection(projection);
+            window.mapState.path = path;
+            
+            // Create layers for map and triangles
+            const mapLayer = svg.append('g').attr('class', 'map-layer');
+            const trianglesLayer = svg.append('g').attr('class', 'triangles-layer');
+            
+            window.mapState.mapLayer = mapLayer;
+            window.mapState.trianglesLayer = trianglesLayer;
+            
+            // Define zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([1, 20])
+                .on('zoom', handleZoom);
+                
+            window.mapState.zoom = zoom;
+            
+            // Apply zoom behavior to SVG
+            svg.call(zoom);
+            
+            // Load world map data
+            d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json').then(data => {
+                // Extract countries
+                const countries = topojson.feature(data, data.objects.countries);
+                
+                // Add countries to the map
+                mapLayer.selectAll('path')
+                    .data(countries.features)
+                    .enter().append('path')
+                    .attr('d', path)
+                    .attr('class', 'country')
+                    .attr('fill', 'rgba(200, 200, 200, 0.3)')
+                    .attr('stroke', 'rgba(150, 150, 150, 0.8)')
+                    .attr('stroke-width', 0.5);
+                
+                // Initial triangle drawing after map is loaded
+                updateTriangles();
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                // Update stored dimensions
+                window.mapState.width = width;
+                window.mapState.height = height;
+                
+                // Resize SVG
+                svg.attr('width', width)
+                    .attr('height', height);
+                
+                // Update projection
+                projection
+                    .scale((width / 6.28))
+                    .translate([width / 2, height / 2]);
+                
+                // Redraw the map
+                mapLayer.selectAll('path').attr('d', path);
+                
+                // Update triangles
+                updateTriangles();
+            });
+        }
+        
+        // Toggle between map and Earth from space views
+        function toggleVisualization() {
+            const mapContainer = document.getElementById('map-container');
+            const earthContainer = document.getElementById('earth-container');
+            const viewToggleButton = document.getElementById('view-toggle-button');
+            const viewToggleText = document.getElementById('view-toggle-text');
+            
+            if (!window.appData.earthViewActive) {
+                // Switch to Earth view
+                mapContainer.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    mapContainer.classList.add('hidden');
+                    mapContainer.classList.remove('fade-out');
+                    
+                    earthContainer.classList.remove('hidden');
+                    earthContainer.classList.add('fade-in');
+                    
+                    window.appData.earthViewActive = true;
+                    
+                    // Update button
+                    viewToggleText.textContent = getText('returnToMap');
+                    viewToggleButton.classList.remove('bg-primary');
+                    viewToggleButton.classList.add('bg-purple-600');
+                    
+                    // Resize and update 3D Earth
+                    resizeEarthView();
+                    update3DEarthVisualization();
+                }, 300);
+            } else {
+                // Switch back to map view
+                earthContainer.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    earthContainer.classList.add('hidden');
+                    earthContainer.classList.remove('fade-out');
+                    
+                    mapContainer.classList.remove('hidden');
+                    mapContainer.classList.add('fade-in');
+                    
+                    window.appData.earthViewActive = false;
+                    
+                    // Update button
+                    viewToggleText.textContent = getText('viewEarthSpace');
+                    viewToggleButton.classList.add('bg-primary');
+                    viewToggleButton.classList.remove('bg-purple-600');
+                    
+                    // Make sure map is updated
+                    updateTriangles();
+                }, 300);
+            }
+        }
+        
+        // Handle zoom events
+        function handleZoom(event) {
+            // Store current zoom level for element scaling
+            window.mapState.currentZoom = event.transform.k;
+            
+            // Apply transform to both map and triangles layers
+            window.mapState.mapLayer.attr('transform', event.transform);
+            window.mapState.trianglesLayer.attr('transform', event.transform);
+            
+            // Update triangle elements to scale inversely with zoom
+            updateTriangleScaling(event.transform.k);
+        }
+        
+        // Scale triangle elements inversely proportional to zoom
+        function updateTriangleScaling(zoomLevel) {
+            // Don't run if triangles aren't rendered yet
+            if (!window.mapState.trianglesLayer) return;
+            
+            // Calculate scaled sizes
+            const lineWidth = Math.max(0.5, 2.5 / Math.sqrt(zoomLevel));
+            const pointRadius = Math.max(1.5, 6 / Math.sqrt(zoomLevel));
+            
+            // Apply to existing elements
+            window.mapState.trianglesLayer.selectAll('.triangle-path')
+                .attr('stroke-width', lineWidth);
+                
+            // Update base radius for points
+            window.mapState.trianglesLayer.selectAll('.triangle-point')
+                .attr('r', pointRadius);
+                
+            // User point needs to remain slightly larger
+            window.mapState.trianglesLayer.selectAll('.user-point')
+                .attr('r', pointRadius * 1.5);
+        }
+        
+        // Update triangles on the map
+        function updateTriangles() {
+            if (!window.mapState.trianglesLayer) return; // Ensure triangles layer exists
+            
+            // Clear existing triangles
+            window.mapState.trianglesLayer.selectAll('*').remove();
+            
+            // Create path for lines
+            const linePaths = window.mapState.trianglesLayer.append('g')
+                .attr('class', 'triangle-lines');
+            
+            // Create container for points (drawn on top of lines)
+            const pointsGroup = window.mapState.trianglesLayer.append('g')
+                .attr('class', 'triangle-points');
+            
+            // Calculate appropriate line width and point size based on zoom level
+            const currentZoom = window.mapState.currentZoom || 1;
+            const lineWidth = Math.max(0.5, 2.5 / Math.sqrt(currentZoom));
+            const pointRadius = Math.max(1.5, 6 / Math.sqrt(currentZoom));
+            
+            // Get all waiting participants (not in triangles)
+            const waitingParticipants = [...window.appData.participants];
+            window.appData.triangles.forEach(triangle => {
+                triangle.members.forEach(member => {
+                    const index = waitingParticipants.findIndex(p => p.id === member.id);
+                    if (index !== -1) {
+                        waitingParticipants.splice(index, 1);
+                    }
+                });
+            });
+            
+            // Draw each participant directly first to ensure they are displayed
+            window.appData.participants.forEach(participant => {
+                // D3 projection expects [longitude, latitude] format
+                const coords = [participant.coordinates[1], participant.coordinates[0]];
+                
+                // Convert geographic coordinates to screen coordinates
+                const point = window.mapState.projection(coords);
+                
+                // Check if this is the current user's point
+                const isUserPoint = window.appData.userProfile && participant.id === window.appData.userProfile.id;
+                
+                // Only draw if we got valid coordinates from the projection
+                if (point && !isNaN(point[0]) && !isNaN(point[1])) {
+                    // Create the point with appropriate styling
+                    const circle = pointsGroup.append('circle')
+                        .attr('class', `triangle-point ${isUserPoint ? 'user-point' : ''}`)
+                        .attr('cx', point[0])
+                        .attr('cy', point[1])
+                        .attr('r', isUserPoint ? pointRadius * 1.5 : pointRadius)
+                        .attr('fill', isUserPoint ? '#FF5722' : '#999999') // Distinctive color for user
+                        .attr('opacity', 0.9)
+                        .attr('data-id', participant.id);
+                        
+                    // Add tooltip
+                    circle.append('title')
+                        .text(participant.name + (isUserPoint ? ' (You)' : '') + 
+                              (waitingParticipants.includes(participant) ? ' (waiting)' : ''));
+                }
+            });
+            
+            // Draw each triangle
+            window.appData.triangles.forEach(triangle => {
+                // Only draw lines if we have at least 2 members
+                if (triangle.members.length >= 2) {
+                    // Create all line combinations
+                    for (let i = 0; i < triangle.members.length; i++) {
+                        const member1 = triangle.members[i];
+                        const member2 = triangle.members[(i + 1) % triangle.members.length];
+                        
+                        // D3 projection expects [longitude, latitude] format
+                        const point1 = window.mapState.projection([member1.coordinates[1], member1.coordinates[0]]);
+                        const point2 = window.mapState.projection([member2.coordinates[1], member2.coordinates[0]]);
+                        
+                        if (point1 && point2 && 
+                            !isNaN(point1[0]) && !isNaN(point1[1]) && 
+                            !isNaN(point2[0]) && !isNaN(point2[1])) {
+                            // Create straight line
+                            linePaths.append('line')
+                                .attr('class', 'triangle-path')
+                                .attr('x1', point1[0])
+                                .attr('y1', point1[1])
+                                .attr('x2', point2[0])
+                                .attr('y2', point2[1])
+                                .attr('stroke', triangle.color)
+                                .attr('stroke-width', lineWidth)
+                                .attr('opacity', 0.8);
+                        }
+                    }
+                }
+                
+                // Update colors for triangle members
+                triangle.members.forEach(member => {
+                    // Find the point in the DOM and update its color
+                    const point = pointsGroup.select(`circle[data-id="${member.id}"]`);
+                    if (!point.empty()) {
+                        point.attr('fill', triangle.color);
+                    }
+                });
+            });
+            
+            // Draw incomplete triangle for waiting participants if there are 2
+            if (waitingParticipants.length === 2) {
+                const member1 = waitingParticipants[0];
+                const member2 = waitingParticipants[1];
+                const incompleteColor = '#999999'; // Gray color for incomplete triangles
+                
+                // D3 projection expects [longitude, latitude] format
+                const point1 = window.mapState.projection([member1.coordinates[1], member1.coordinates[0]]);
+                const point2 = window.mapState.projection([member2.coordinates[1], member2.coordinates[0]]);
+                
+                if (point1 && point2 && 
+                   !isNaN(point1[0]) && !isNaN(point1[1]) && 
+                   !isNaN(point2[0]) && !isNaN(point2[1])) {
+                    // Create dashed line for incomplete triangle
+                    linePaths.append('line')
+                        .attr('class', 'triangle-path')
+                        .attr('x1', point1[0])
+                        .attr('y1', point1[1])
+                        .attr('x2', point2[0])
+                        .attr('y2', point2[1])
+                        .attr('stroke', incompleteColor)
+                        .attr('stroke-width', lineWidth)
+                        .attr('opacity', 0.6)
+                        .attr('stroke-dasharray', '5,5'); // Dashed line for incomplete triangle
+                }
+            }
+            
+            // Update statistics
+            updateStatisticsDisplay();
+        }
+        
+        // Helper function to get random coordinates for a region
+        function getRandomCoordinatesForRegion(region) {
+            const regions = {
+                'north-america': { lat: [25, 50], lng: [-130, -70] },
+                'south-america': { lat: [-35, 10], lng: [-80, -35] },
+                'europe': { lat: [35, 65], lng: [-10, 30] },
+                'africa': { lat: [-35, 35], lng: [-20, 50] },
+                'asia': { lat: [10, 60], lng: [60, 140] },
+                'oceania': { lat: [-45, -10], lng: [110, 180] }
+            };
+            
+            const r = regions[region];
+            if (!r) return [0, 0];
+            
+            const lat = Math.random() * (r.lat[1] - r.lat[0]) + r.lat[0];
+            const lng = Math.random() * (r.lng[1] - r.lng[0]) + r.lng[0];
+            
+            return [lat, lng];
+        }
     </script>
 </body>
 </html>
