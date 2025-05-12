@@ -129,6 +129,57 @@
             margin-left: 0;
             margin-right: 1rem;
         }
+        
+        /* Animation pour la transition entre les vues */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* Style pour la vue des triangles en activité */
+        .triangle-space {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .triangle-space-dot {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .triangle-space-line {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform-origin: 0 50%;
+        }
+        
+        .triangle-space-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            font-size: 14px;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -167,6 +218,7 @@
             // Langues principales uniquement
             availableLanguages: ['en', 'fr', 'es', 'de', 'it', 'ru'],
             currentLanguage: 'en',
+            triangleSpaceActive: false, // Nouvelle propriété pour suivre l'état de la vue des triangles
             translations: {
                 en: {
                     appTitle: "Triangle Meditation Network",
@@ -204,7 +256,11 @@
                     useMyLocation: "Use My Location",
                     locationError: "Location could not be determined",
                     startSimulation: "Start 30-Person Simulation",
-                    stopSimulation: "Stop Simulation"
+                    stopSimulation: "Stop Simulation",
+                    viewTriangleSpace: "View Triangle Space",
+                    returnToMap: "Return to Map View",
+                    activeNetwork: "Active Energy Network",
+                    triangleSpaceInfo: "Meditation Energy: {0} triangles active"
                 },
                 fr: {
                     appTitle: "Réseau de Méditation en Triangle",
@@ -242,7 +298,11 @@
                     useMyLocation: "Utiliser ma position",
                     locationError: "Impossible de déterminer votre position",
                     startSimulation: "Commencer simulation 30 participants",
-                    stopSimulation: "Arrêter simulation"
+                    stopSimulation: "Arrêter simulation",
+                    viewTriangleSpace: "Voir l'espace des triangles",
+                    returnToMap: "Retour à la carte",
+                    activeNetwork: "Réseau d'énergie actif",
+                    triangleSpaceInfo: "Énergie de méditation : {0} triangles actifs"
                 },
                 es: {
                     appTitle: "Red de Meditación Triangular",
@@ -280,7 +340,11 @@
                     useMyLocation: "Usar mi ubicación",
                     locationError: "No se pudo determinar la ubicación",
                     startSimulation: "Iniciar simulación 30 participantes",
-                    stopSimulation: "Detener simulación"
+                    stopSimulation: "Detener simulación",
+                    viewTriangleSpace: "Ver espacio de triángulos",
+                    returnToMap: "Volver al mapa",
+                    activeNetwork: "Red de energía activa",
+                    triangleSpaceInfo: "Energía de meditación: {0} triángulos activos"
                 },
                 de: {
                     appTitle: "Dreieck-Meditations-Netzwerk",
@@ -318,7 +382,11 @@
                     useMyLocation: "Meinen Standort verwenden",
                     locationError: "Standort konnte nicht ermittelt werden",
                     startSimulation: "30-Personen-Simulation starten",
-                    stopSimulation: "Simulation stoppen"
+                    stopSimulation: "Simulation stoppen",
+                    viewTriangleSpace: "Dreiecksraum anzeigen",
+                    returnToMap: "Zurück zur Karte",
+                    activeNetwork: "Aktives Energienetzwerk",
+                    triangleSpaceInfo: "Meditationsenergie: {0} Dreiecke aktiv"
                 },
                 it: {
                     appTitle: "Rete di Meditazione Triangolare",
@@ -356,7 +424,11 @@
                     useMyLocation: "Usa la mia posizione",
                     locationError: "Impossibile determinare la posizione",
                     startSimulation: "Avvia simulazione 30 partecipanti",
-                    stopSimulation: "Ferma simulazione"
+                    stopSimulation: "Ferma simulazione",
+                    viewTriangleSpace: "Visualizza spazio triangoli",
+                    returnToMap: "Torna alla mappa",
+                    activeNetwork: "Rete energetica attiva",
+                    triangleSpaceInfo: "Energia di meditazione: {0} triangoli attivi"
                 },
                 ru: {
                     appTitle: "Сеть Треугольной Медитации",
@@ -394,7 +466,11 @@
                     useMyLocation: "Использовать мое местоположение",
                     locationError: "Не удалось определить местоположение",
                     startSimulation: "Запустить симуляцию 30 участников",
-                    stopSimulation: "Остановить симуляцию"
+                    stopSimulation: "Остановить симуляцию",
+                    viewTriangleSpace: "Просмотр пространства треугольников",
+                    returnToMap: "Вернуться к карте",
+                    activeNetwork: "Активная энергетическая сеть",
+                    triangleSpaceInfo: "Энергия медитации: {0} активных треугольников"
                 }
             },
             // Geographical data for hierarchical selection
@@ -626,9 +702,20 @@
                     <span id="simulation-text">Start 30-Person Simulation</span>
                 </button>
             </div>
+            
+            <!-- Map Container (standard view) -->
             <div id="map-container" class="w-full h-[400px] md:h-[500px] relative">
                 <svg id="map" class="w-full h-full"></svg>
             </div>
+            
+            <!-- Triangle Space Container (alternative view) -->
+            <div id="triangle-space-container" class="w-full h-[400px] md:h-[500px] triangle-space relative hidden">
+                <!-- Triangle space visualization will be generated here -->
+                <div class="triangle-space-overlay">
+                    <span id="triangle-space-info">Meditation Energy: 0 triangles active</span>
+                </div>
+            </div>
+            
             <div class="mt-4 grid grid-cols-3 gap-4 text-center">
                 <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
                     <h3 class="font-semibold" id="participants-label">Current Participants</h3>
@@ -745,7 +832,7 @@
             // Register button handlers
             document.getElementById('join-network').addEventListener('click', joinNetwork);
             document.getElementById('geolocate-button').addEventListener('click', getUserLocation);
-            document.getElementById('simulation-button').addEventListener('click', toggleSimulation);
+            document.getElementById('simulation-button').addEventListener('click', toggleVisualization);
             
             // Add leave network button handler
             if (document.getElementById('leave-network')) {
@@ -1015,6 +1102,11 @@
                 
                 // Update statistics on the map
                 updateStatisticsDisplay();
+                
+                // Update triangle space visualization if active
+                if (window.appData.triangleSpaceActive) {
+                    updateTriangleSpaceVisualization();
+                }
             } catch (error) {
                 console.error("Error joining network:", error);
                 
@@ -1052,6 +1144,11 @@
             
             // Update statistics
             updateStatisticsDisplay();
+            
+            // Update triangle space visualization if active
+            if (window.appData.triangleSpaceActive) {
+                updateTriangleSpaceVisualization();
+            }
         }
         
         // Start the 20-minute countdown timer for the user's position
@@ -1105,6 +1202,11 @@
                     
                     // Update statistics
                     updateStatisticsDisplay();
+                    
+                    // Update triangle space visualization if active
+                    if (window.appData.triangleSpaceActive) {
+                        updateTriangleSpaceVisualization();
+                    }
                 }
             }, 1000);
         }
@@ -1211,6 +1313,11 @@
             // The remaining participants (0, 1, or 2) will wait for more participants
             updateTriangles();
             updateStatisticsDisplay();
+            
+            // Update triangle space visualization if active
+            if (window.appData.triangleSpaceActive) {
+                updateTriangleSpaceVisualization();
+            }
         }
         
         // Get a random vibrant color for triangles
@@ -1231,6 +1338,11 @@
             document.getElementById('participants-count').textContent = window.appData.participants.length;
             document.getElementById('triangles-count').textContent = window.appData.triangles.length;
             document.getElementById('waiting-count').textContent = window.appData.participants.length % 3;
+            
+            // Update triangle space info
+            const triangleSpaceInfo = document.getElementById('triangle-space-info');
+            const infoText = getText('triangleSpaceInfo').replace('{0}', window.appData.triangles.length);
+            triangleSpaceInfo.textContent = infoText;
             
             // Update user's triangle status if logged in
             if (window.appData.userProfile) {
@@ -1273,7 +1385,19 @@
             updateElementText('status-title', 'networkStatus');
             updateElementText('select-option', 'selectOption');
             updateElementText('geolocate-text', 'useMyLocation');
-            updateElementText('simulation-text', window.simulationRunning ? 'stopSimulation' : 'startSimulation');
+            
+            // Update simulation/triangle space button text based on current state
+            const simulationText = document.getElementById('simulation-text');
+            if (window.appData.triangleSpaceActive) {
+                simulationText.textContent = getText('returnToMap');
+            } else {
+                simulationText.textContent = getText('viewTriangleSpace');
+            }
+            
+            // Update triangle space info
+            const triangleSpaceInfo = document.getElementById('triangle-space-info');
+            const infoText = getText('triangleSpaceInfo').replace('{0}', window.appData.triangles.length);
+            triangleSpaceInfo.textContent = infoText;
             
             // Update dynamic text if user is registered
             if (window.appData.userProfile) {
@@ -1401,7 +1525,193 @@
                 
                 // Update triangles
                 updateTriangles();
+                
+                // Update triangle space visualization if active
+                if (window.appData.triangleSpaceActive) {
+                    updateTriangleSpaceVisualization();
+                }
             });
+            
+            // Initialize triangle space visualization
+            initializeTriangleSpace();
+        }
+        
+        // Initialize the triangle space visualization
+        function initializeTriangleSpace() {
+            // The container is already defined in HTML, we'll just add elements dynamically
+            // when the visualization is active
+        }
+        
+        // Toggle between map and triangle space views
+        function toggleVisualization() {
+            const mapContainer = document.getElementById('map-container');
+            const triangleSpaceContainer = document.getElementById('triangle-space-container');
+            const simulationButton = document.getElementById('simulation-button');
+            const simulationText = document.getElementById('simulation-text');
+            
+            if (!window.appData.triangleSpaceActive) {
+                // Switch to triangle space view
+                mapContainer.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    mapContainer.classList.add('hidden');
+                    mapContainer.classList.remove('fade-out');
+                    
+                    triangleSpaceContainer.classList.remove('hidden');
+                    triangleSpaceContainer.classList.add('fade-in');
+                    
+                    window.appData.triangleSpaceActive = true;
+                    
+                    // Update button
+                    simulationText.textContent = getText('returnToMap');
+                    simulationButton.classList.remove('bg-primary');
+                    simulationButton.classList.add('bg-purple-600');
+                    
+                    // Generate the visualization
+                    updateTriangleSpaceVisualization();
+                }, 300);
+            } else {
+                // Switch back to map view
+                triangleSpaceContainer.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    triangleSpaceContainer.classList.add('hidden');
+                    triangleSpaceContainer.classList.remove('fade-out');
+                    
+                    mapContainer.classList.remove('hidden');
+                    mapContainer.classList.add('fade-in');
+                    
+                    window.appData.triangleSpaceActive = false;
+                    
+                    // Update button
+                    simulationText.textContent = getText('viewTriangleSpace');
+                    simulationButton.classList.add('bg-primary');
+                    simulationButton.classList.remove('bg-purple-600');
+                    
+                    // Make sure map is updated
+                    updateTriangles();
+                }, 300);
+            }
+        }
+        
+        // Update the triangle space visualization
+        function updateTriangleSpaceVisualization() {
+            const container = document.getElementById('triangle-space-container');
+            if (!container || container.classList.contains('hidden')) return;
+            
+            // Clear existing visualization
+            container.querySelectorAll('.triangle-space-dot, .triangle-space-line').forEach(el => el.remove());
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // Create a starry background effect
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'triangle-space-dot';
+                star.style.left = `${Math.random() * width}px`;
+                star.style.top = `${Math.random() * height}px`;
+                star.style.width = `${Math.random() * 3 + 1}px`;
+                star.style.height = `${Math.random() * 3 + 1}px`;
+                star.style.opacity = Math.random() * 0.7 + 0.3;
+                container.appendChild(star);
+            }
+            
+            // Draw triangles
+            window.appData.triangles.forEach((triangle, index) => {
+                // Calculate points in abstract space
+                const points = [];
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const radius = Math.min(width, height) * 0.35;
+                
+                // Position triangle points in circular pattern
+                for (let i = 0; i < 3; i++) {
+                    const angle = (index * 30 + i * 120) * Math.PI / 180;
+                    const x = centerX + radius * Math.cos(angle) * (0.7 + Math.random() * 0.3);
+                    const y = centerY + radius * Math.sin(angle) * (0.7 + Math.random() * 0.3);
+                    points.push({x, y});
+                }
+                
+                // Draw triangle points
+                points.forEach((point, i) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'triangle-space-dot';
+                    dot.style.left = `${point.x}px`;
+                    dot.style.top = `${point.y}px`;
+                    dot.style.width = '8px';
+                    dot.style.height = '8px';
+                    dot.style.backgroundColor = triangle.color;
+                    dot.style.animation = `pulse 2s infinite ${i * 0.3}s`;
+                    dot.style.boxShadow = `0 0 15px ${triangle.color}`;
+                    container.appendChild(dot);
+                    
+                    // Add tooltip with participant name
+                    dot.title = triangle.members[i]?.name || 'Participant';
+                });
+                
+                // Draw lines connecting points
+                for (let i = 0; i < 3; i++) {
+                    const start = points[i];
+                    const end = points[(i + 1) % 3];
+                    
+                    const dx = end.x - start.x;
+                    const dy = end.y - start.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    
+                    const line = document.createElement('div');
+                    line.className = 'triangle-space-line';
+                    line.style.left = `${start.x}px`;
+                    line.style.top = `${start.y}px`;
+                    line.style.width = `${length}px`;
+                    line.style.height = '2px';
+                    line.style.transform = `rotate(${angle}deg)`;
+                    line.style.backgroundColor = triangle.color;
+                    line.style.opacity = '0.6';
+                    line.style.boxShadow = `0 0 8px ${triangle.color}`;
+                    container.appendChild(line);
+                }
+            });
+            
+            // Visualize waiting participants
+            const waitingCount = window.appData.participants.length % 3;
+            if (waitingCount > 0) {
+                const centerX = width / 2;
+                const centerY = height * 0.8;
+                
+                for (let i = 0; i < waitingCount; i++) {
+                    const offset = (i - (waitingCount - 1) / 2) * 40;
+                    const participant = window.appData.participants[window.appData.participants.length - waitingCount + i];
+                    
+                    const dot = document.createElement('div');
+                    dot.className = 'triangle-space-dot';
+                    dot.style.left = `${centerX + offset}px`;
+                    dot.style.top = `${centerY}px`;
+                    dot.style.width = '8px';
+                    dot.style.height = '8px';
+                    dot.style.backgroundColor = '#999999';
+                    dot.style.animation = 'pulse 2s infinite';
+                    
+                    // Special highlight for user
+                    if (window.appData.userProfile && participant?.id === window.appData.userProfile.id) {
+                        dot.style.backgroundColor = '#FF5722';
+                        dot.style.boxShadow = '0 0 15px #FF5722';
+                        dot.style.width = '10px';
+                        dot.style.height = '10px';
+                    }
+                    
+                    container.appendChild(dot);
+                    
+                    // Add tooltip with participant name
+                    dot.title = participant?.name || 'Waiting Participant';
+                }
+            }
+            
+            // Update info overlay
+            const triangleSpaceInfo = document.getElementById('triangle-space-info');
+            const infoText = getText('triangleSpaceInfo').replace('{0}', window.appData.triangles.length);
+            triangleSpaceInfo.textContent = infoText;
         }
         
         // Handle zoom events
@@ -1596,28 +1906,12 @@
         let simulationParticipants = [];
         let simulationInterval = null;
         
-        // Toggle 30-person simulation
-        function toggleSimulation() {
-            if (window.simulationRunning) {
-                stopSimulation();
-            } else {
-                startSimulation();
-            }
-        }
-        
-        // Start the 30-person simulation
+        // Start simulation if button text says to
         function startSimulation() {
             if (window.simulationRunning) return;
             
             window.simulationRunning = true;
             simulationParticipants = [];
-            
-            // Update button text
-            const simulationButton = document.getElementById('simulation-button');
-            const simulationText = document.getElementById('simulation-text');
-            simulationText.textContent = getText('stopSimulation');
-            simulationButton.classList.add('bg-red-500');
-            simulationButton.classList.remove('bg-primary');
             
             // Add initial participants
             addSimulationParticipants(10);
@@ -1634,38 +1928,6 @@
             // Save state to localStorage if available
             if (window.localStorage) {
                 localStorage.setItem('simulationRunning', 'true');
-            }
-        }
-        
-        // Stop the simulation
-        function stopSimulation() {
-            if (!window.simulationRunning) return;
-            
-            window.simulationRunning = false;
-            clearInterval(simulationInterval);
-            
-            // Update button text
-            const simulationButton = document.getElementById('simulation-button');
-            const simulationText = document.getElementById('simulation-text');
-            simulationText.textContent = getText('startSimulation');
-            simulationButton.classList.remove('bg-red-500');
-            simulationButton.classList.add('bg-primary');
-            
-            // Remove all simulation participants
-            simulationParticipants.forEach(participant => {
-                const index = window.appData.participants.findIndex(p => p.id === participant.id);
-                if (index !== -1) {
-                    window.appData.participants.splice(index, 1);
-                }
-            });
-            simulationParticipants = [];
-            
-            // Reform triangles
-            formTriangles();
-            
-            // Save state to localStorage if available
-            if (window.localStorage) {
-                localStorage.setItem('simulationRunning', 'false');
             }
         }
         
@@ -1706,20 +1968,12 @@
             
             // Form triangles
             formTriangles();
-        }
-        
-        // Check if simulation was previously running
-        function checkSimulationStatus() {
-            if (window.localStorage) {
-                const wasRunning = localStorage.getItem('simulationRunning') === 'true';
-                if (wasRunning) {
-                    startSimulation();
-                }
+            
+            // Update triangle space visualization if active
+            if (window.appData.triangleSpaceActive) {
+                updateTriangleSpaceVisualization();
             }
         }
-        
-        // Initialize simulation status on page load
-        checkSimulationStatus();
     </script>
 </body>
 </html>
