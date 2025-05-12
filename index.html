@@ -8,6 +8,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
     <script src="https://unpkg.com/marked@4.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <style>
         .triangle-path {
             stroke-dasharray: 10;
@@ -150,11 +151,65 @@
         }
         
         /* Style pour la vue de la Terre depuis l'espace */
-        .earth-space {
-            background: radial-gradient(ellipse at center, #0D1117 0%, #020409 100%);
-            border-radius: 8px;
-            overflow: hidden;
+        .earth-view {
             position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            border-radius: 8px;
+        }
+        
+        .earth-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .earth-img {
+            position: relative;
+            width: 70%;
+            height: auto;
+            aspect-ratio: 1/1;
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(70, 130, 230, 0.4);
+        }
+        
+        .energy-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            animation: energyPulse 3s infinite;
+        }
+        
+        @keyframes energyPulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0.6; }
+        }
+        
+        .energy-line {
+            position: absolute;
+            height: 3px;
+            transform-origin: 0 0;
+            background: linear-gradient(90deg, currentColor 0%, rgba(255, 255, 255, 0.8) 50%, currentColor 100%);
+            opacity: 0.7;
+            z-index: 5;
+            animation: linePulse 4s infinite;
+        }
+        
+        @keyframes linePulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.4; }
         }
         
         .star {
@@ -170,103 +225,31 @@
             100% { opacity: 0.3; }
         }
         
-        .earth {
-            position: absolute;
-            width: 70%;
-            height: 70%;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: radial-gradient(circle at center, #1a4567 0%, #0f2d4a 100%);
-            box-shadow: 0 0 50px rgba(0, 80, 200, 0.5);
-            overflow: hidden;
-        }
-        
-        .continent {
-            position: absolute;
-            background-color: rgba(30, 130, 76, 0.5);
-            border-radius: 50%;
-        }
-        
-        .triangle-node {
-            position: absolute;
-            border-radius: 50%;
-            box-shadow: 0 0 15px currentColor;
-            transform: translate(-50%, -50%);
-            animation: nodeGlow 3s infinite;
-            z-index: 10;
-        }
-        
-        @keyframes nodeGlow {
-            0% { opacity: 0.6; box-shadow: 0 0 15px currentColor; }
-            50% { opacity: 1; box-shadow: 0 0 25px currentColor; }
-            100% { opacity: 0.6; box-shadow: 0 0 15px currentColor; }
-        }
-        
-        .triangle-connection {
-            position: absolute;
-            height: 2px;
-            background: linear-gradient(90deg, transparent 0%, currentColor 50%, transparent 100%);
-            transform-origin: 0 50%;
-            opacity: 0.7;
-            z-index: 5;
-            animation: connectionPulse 4s infinite;
-        }
-        
-        @keyframes connectionPulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 0.8; }
-            100% { opacity: 0.4; }
-        }
-        
-        .energy-glow {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: radial-gradient(ellipse at center, rgba(100, 200, 255, 0.2) 0%, transparent 70%);
-            animation: energyPulse 8s infinite;
-            z-index: 2;
-        }
-        
-        @keyframes energyPulse {
-            0% { opacity: 0.3; transform: scale(0.9); }
-            50% { opacity: 0.6; transform: scale(1.1); }
-            100% { opacity: 0.3; transform: scale(0.9); }
-        }
-        
-        .earth-overlay {
+        .earth-info {
             position: absolute;
             bottom: 16px;
             left: 16px;
             background-color: rgba(0, 0, 0, 0.7);
+            color: white;
             padding: 8px 16px;
             border-radius: 20px;
-            color: white;
             font-size: 14px;
-            z-index: 20;
+            z-index: 100;
         }
         
-        .earth-rotation {
-            animation: rotateEarth 120s linear infinite;
+        .user-energy-point {
+            background-color: #FF5722;
+            box-shadow: 0 0 15px #FF5722, 0 0 30px #FF5722;
+            width: 12px;
+            height: 12px;
+            z-index: 15;
         }
         
-        @keyframes rotateEarth {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        
-        .atmosphere {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 76%;
-            height: 76%;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 80px rgba(70, 130, 230, 0.3);
-            z-index: 1;
+        /* 3D Earth styles */
+        #earth-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
     </style>
     <script>
@@ -740,14 +723,14 @@
                     "nc": [-20.9043, 165.6180],
                     "ws": [-13.7590, -172.1046]
                 },
-                // Positions simplifiées des continents pour la vue spatiale
-                continentPositions: {
-                    "europe": { x: 0.52, y: 0.38 },
-                    "asia": { x: 0.65, y: 0.45 },
-                    "africa": { x: 0.52, y: 0.55 },
-                    "north-america": { x: 0.3, y: 0.42 },
-                    "south-america": { x: 0.35, y: 0.65 },
-                    "oceania": { x: 0.8, y: 0.7 }
+                // Coordonnées sphériques approximatives pour la visualisation 3D
+                sphericalCoordinates: {
+                    "europe": { lat: 50, lng: 10 },
+                    "north-america": { lat: 40, lng: -100 },
+                    "south-america": { lat: -20, lng: -60 },
+                    "asia": { lat: 30, lng: 100 },
+                    "africa": { lat: 0, lng: 20 },
+                    "oceania": { lat: -25, lng: 135 }
                 }
             }
         };
@@ -795,8 +778,8 @@
         <div class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md map-container overflow-hidden">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold" id="active-triangles-title">Active Triangles</h2>
-                <button id="simulation-button" class="bg-primary hover:bg-opacity-90 text-white px-3 py-1 rounded text-sm">
-                    <span id="simulation-text">View Earth from Space</span>
+                <button id="view-toggle-button" class="bg-primary hover:bg-opacity-90 text-white px-3 py-1 rounded text-sm">
+                    <span id="view-toggle-text">View Earth from Space</span>
                 </button>
             </div>
             
@@ -805,15 +788,13 @@
                 <svg id="map" class="w-full h-full"></svg>
             </div>
             
-            <!-- Earth from Space Container (alternative view) -->
-            <div id="earth-space-container" class="w-full h-[400px] md:h-[500px] earth-space relative hidden">
-                <div class="earth earth-rotation">
-                    <div class="energy-glow"></div>
-                    <!-- Les continents et triangles seront ajoutés ici dynamiquement -->
-                </div>
-                <div class="atmosphere"></div>
-                <div class="earth-overlay">
-                    <span id="earth-space-info">Meditation Energy: 0 triangles active</span>
+            <!-- Earth from Space Container (3D view) -->
+            <div id="earth-container" class="w-full h-[400px] md:h-[500px] relative hidden">
+                <div class="earth-view">
+                    <canvas id="earth-canvas"></canvas>
+                    <div class="earth-info">
+                        <span id="earth-info-text">Meditation Energy: 0 triangles active</span>
+                    </div>
                 </div>
             </div>
             
@@ -908,6 +889,20 @@
     </footer>
 
     <script>
+        // Stockage global pour la scène Three.js
+        window.earthScene = {
+            scene: null,
+            camera: null,
+            renderer: null,
+            earth: null,
+            stars: [],
+            energyPoints: [],
+            energyLines: [],
+            raycaster: null,
+            mouse: null,
+            animationId: null
+        };
+        
         // Main application logic
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize the language
@@ -922,6 +917,9 @@
             // Initialize the map
             initializeMap();
             
+            // Initialize the 3D Earth (but don't show it yet)
+            init3DEarth();
+            
             // Set up the geographic selection
             initializeGeoSelectors();
             
@@ -929,67 +927,353 @@
             setInterval(() => {
                 updateTriangles();
                 if (window.appData.earthViewActive) {
-                    updateEarthSpaceVisualization();
+                    update3DEarthVisualization();
                 }
             }, 3000);
             
             // Register button handlers
             document.getElementById('join-network').addEventListener('click', joinNetwork);
             document.getElementById('geolocate-button').addEventListener('click', getUserLocation);
-            document.getElementById('simulation-button').addEventListener('click', toggleVisualization);
+            document.getElementById('view-toggle-button').addEventListener('click', toggleVisualization);
             
             // Add leave network button handler
             if (document.getElementById('leave-network')) {
                 document.getElementById('leave-network').addEventListener('click', leaveNetwork);
             }
             
-            // Create starry background for Earth view
-            createStarryBackground();
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (window.appData.earthViewActive) {
+                    resizeEarthView();
+                }
+            });
             
             // Load user data from localStorage if available
             loadUserData();
         });
         
-        // Create starry background for Earth view
-        function createStarryBackground() {
-            const container = document.getElementById('earth-space-container');
-            if (!container) return;
+        // Initialize the 3D Earth visualization
+        function init3DEarth() {
+            const container = document.getElementById('earth-canvas');
+            
+            // Set up scene
+            const scene = new THREE.Scene();
+            window.earthScene.scene = scene;
+            
+            // Set up camera
+            const camera = new THREE.PerspectiveCamera(
+                45, // Field of view
+                container.clientWidth / container.clientHeight, // Aspect ratio
+                0.1, // Near clipping plane
+                1000 // Far clipping plane
+            );
+            camera.position.z = 5;
+            window.earthScene.camera = camera;
+            
+            // Set up renderer
+            const renderer = new THREE.WebGLRenderer({ 
+                canvas: container,
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            window.earthScene.renderer = renderer;
+            
+            // Create Earth with texture
+            const earthGeometry = new THREE.SphereGeometry(2, 64, 64);
+            
+            // Create a dynamic texture loader for Earth
+            const textureLoader = new THREE.TextureLoader();
+            
+            // Méthode alternative utilisant un dégradé pour la texture de la Terre
+            const earthMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2233aa,
+                shininess: 25,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            scene.add(earth);
+            window.earthScene.earth = earth;
+            
+            // Add atmosphere glow
+            const atmosphereGeometry = new THREE.SphereGeometry(2.1, 64, 64);
+            const atmosphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4488ff,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.BackSide
+            });
+            const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+            scene.add(atmosphere);
+            
+            // Add continents
+            addContinentsToEarth(earth);
+            
+            // Add stars to the background
+            createStarField(scene, 1000);
+            
+            // Add ambient light
+            const ambientLight = new THREE.AmbientLight(0x333333);
+            scene.add(ambientLight);
+            
+            // Add directional light (sun-like)
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(5, 3, 5);
+            scene.add(sunLight);
+            
+            // Raycaster for potential interactions
+            window.earthScene.raycaster = new THREE.Raycaster();
+            window.earthScene.mouse = new THREE.Vector2();
+            
+            // Start animation
+            animate3DEarth();
+        }
+        
+        // Add simplified continents to the Earth
+        function addContinentsToEarth(earth) {
+            // North America
+            addContinent(earth, 45, -100, 0.8, 0.6);
+            
+            // South America
+            addContinent(earth, -20, -60, 0.6, 0.7);
+            
+            // Europe
+            addContinent(earth, 50, 10, 0.4, 0.3);
+            
+            // Africa
+            addContinent(earth, 0, 20, 0.7, 0.8);
+            
+            // Asia
+            addContinent(earth, 40, 90, 1.0, 0.9);
+            
+            // Australia
+            addContinent(earth, -25, 135, 0.5, 0.4);
+        }
+        
+        // Helper function to add a continent
+        function addContinent(earth, lat, lng, sizeX, sizeY) {
+            // Convert lat/lng to 3D position
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = (lng + 180) * Math.PI / 180;
+            
+            const position = new THREE.Vector3();
+            position.x = -2 * Math.sin(phi) * Math.cos(theta);
+            position.y = 2 * Math.cos(phi);
+            position.z = 2 * Math.sin(phi) * Math.sin(theta);
+            
+            // Create a sphere for the continent
+            const continentGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+            const continentMaterial = new THREE.MeshPhongMaterial({
+                color: 0x39805f, // Greenish color for land
+                shininess: 10
+            });
+            const continent = new THREE.Mesh(continentGeometry, continentMaterial);
+            
+            // Adjust the size and position
+            continent.position.copy(position);
+            continent.scale.set(sizeX * 8, sizeY * 8, 0.1);
+            
+            // Make the continent follow the curvature of the Earth
+            continent.lookAt(new THREE.Vector3(0, 0, 0));
+            
+            // Add the continent to Earth
+            earth.add(continent);
+        }
+        
+        // Create a star field
+        function createStarField(scene, count) {
+            for (let i = 0; i < count; i++) {
+                const geometry = new THREE.SphereGeometry(0.03, 8, 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xffffff, 
+                    transparent: true,
+                    opacity: Math.random() * 0.5 + 0.5
+                });
+                
+                const star = new THREE.Mesh(geometry, material);
+                
+                // Random position
+                const radius = 90 + Math.random() * 10;
+                const theta = 2 * Math.PI * Math.random();
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                star.position.x = radius * Math.sin(phi) * Math.cos(theta);
+                star.position.y = radius * Math.sin(phi) * Math.sin(theta);
+                star.position.z = radius * Math.cos(phi);
+                
+                scene.add(star);
+                window.earthScene.stars.push(star);
+            }
+        }
+        
+        // Animation loop for the 3D Earth
+        function animate3DEarth() {
+            if (!window.appData.earthViewActive) {
+                window.earthScene.animationId = requestAnimationFrame(animate3DEarth);
+                return;
+            }
+            
+            window.earthScene.animationId = requestAnimationFrame(animate3DEarth);
+            
+            // Rotate the Earth
+            if (window.earthScene.earth) {
+                window.earthScene.earth.rotation.y += 0.001;
+                
+                // Make energy points pulse
+                window.earthScene.energyPoints.forEach((point, index) => {
+                    const scale = 1 + 0.2 * Math.sin(Date.now() * 0.002 + index);
+                    point.scale.set(scale, scale, scale);
+                });
+            }
+            
+            // Render the scene
+            window.earthScene.renderer.render(window.earthScene.scene, window.earthScene.camera);
+        }
+        
+        // Resize handler for the Earth view
+        function resizeEarthView() {
+            const container = document.getElementById('earth-canvas');
+            if (!container || !window.earthScene.camera || !window.earthScene.renderer) return;
             
             const width = container.clientWidth;
             const height = container.clientHeight;
             
-            // Add stars to the background
-            for (let i = 0; i < 150; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.width = `${Math.random() * 2 + 1}px`;
-                star.style.height = star.style.width;
-                star.style.left = `${Math.random() * width}px`;
-                star.style.top = `${Math.random() * height}px`;
-                star.style.animationDelay = `${Math.random() * 4}s`;
-                container.appendChild(star);
-            }
+            window.earthScene.camera.aspect = width / height;
+            window.earthScene.camera.updateProjectionMatrix();
             
-            // Add continents to Earth
-            const earth = container.querySelector('.earth');
-            if (earth) {
-                Object.entries(window.appData.geoData.continentPositions).forEach(([continent, position]) => {
-                    const continentEl = document.createElement('div');
-                    continentEl.className = 'continent';
-                    continentEl.dataset.continent = continent;
-                    
-                    // Taille et position aléatoire autour du point central du continent
-                    const size = 6 + Math.random() * 10; // Taille entre 6% et 16% de la Terre
-                    continentEl.style.width = `${size}%`;
-                    continentEl.style.height = `${size * (1 + Math.random() * 0.5)}%`;
-                    
-                    // Position basée sur les coordonnées simplifiées
-                    continentEl.style.left = `${position.x * 100}%`;
-                    continentEl.style.top = `${position.y * 100}%`;
-                    
-                    earth.appendChild(continentEl);
+            window.earthScene.renderer.setSize(width, height);
+        }
+        
+        // Update the 3D Earth visualization with current triangle data
+        function update3DEarthVisualization() {
+            if (!window.appData.earthViewActive || !window.earthScene.earth) return;
+            
+            // Clear existing energy points and lines
+            window.earthScene.energyPoints.forEach(point => {
+                if (point.parent) point.parent.remove(point);
+            });
+            window.earthScene.energyLines.forEach(line => {
+                if (line.parent) line.parent.remove(line);
+            });
+            
+            window.earthScene.energyPoints = [];
+            window.earthScene.energyLines = [];
+            
+            // Create energy points for each participant
+            const participantPoints = {};
+            
+            window.appData.participants.forEach(participant => {
+                // Determine which continent the participant is from
+                const continent = participant.continent;
+                const countryCode = participant.country;
+                
+                // Get spherical coordinates
+                let sphericalPos;
+                if (window.appData.geoData.sphericalCoordinates[continent]) {
+                    sphericalPos = window.appData.geoData.sphericalCoordinates[continent];
+                } else {
+                    // Default position if continent not found
+                    sphericalPos = { lat: 0, lng: 0 };
+                }
+                
+                // Add some randomness to positions within continent
+                const lat = sphericalPos.lat + (Math.random() * 20 - 10);
+                const lng = sphericalPos.lng + (Math.random() * 20 - 10);
+                
+                // Convert to 3D coordinates
+                const phi = (90 - lat) * Math.PI / 180;
+                const theta = (lng + 180) * Math.PI / 180;
+                
+                const position = new THREE.Vector3();
+                position.x = -2 * Math.sin(phi) * Math.cos(theta);
+                position.y = 2 * Math.cos(phi);
+                position.z = 2 * Math.sin(phi) * Math.sin(theta);
+                
+                // Create energy point
+                const pointGeometry = new THREE.SphereGeometry(0.03, 16, 16);
+                
+                // Find if participant is in a triangle
+                const triangleIndex = window.appData.triangles.findIndex(triangle => 
+                    triangle.members.some(member => member.id === participant.id)
+                );
+                
+                let pointColor;
+                if (triangleIndex >= 0) {
+                    // Get color from triangle
+                    const triangleColor = window.appData.triangles[triangleIndex].color;
+                    pointColor = new THREE.Color(triangleColor);
+                } else {
+                    // Gray for waiting participants
+                    pointColor = new THREE.Color(0x999999);
+                }
+                
+                const pointMaterial = new THREE.MeshPhongMaterial({
+                    color: pointColor,
+                    emissive: pointColor,
+                    emissiveIntensity: 0.5,
+                    shininess: 50
                 });
-            }
+                
+                const point = new THREE.Mesh(pointGeometry, pointMaterial);
+                point.position.copy(position);
+                
+                // Check if this is the user's point
+                const isUserPoint = window.appData.userProfile && participant.id === window.appData.userProfile.id;
+                if (isUserPoint) {
+                    // Make user's point larger and brighter
+                    const userColor = new THREE.Color(0xFF5722);
+                    point.material.color.set(userColor);
+                    point.material.emissive.set(userColor);
+                    point.material.emissiveIntensity = 0.8;
+                    point.scale.set(1.5, 1.5, 1.5);
+                }
+                
+                window.earthScene.earth.add(point);
+                window.earthScene.energyPoints.push(point);
+                
+                // Store point for triangle connections
+                participantPoints[participant.id] = point;
+            });
+            
+            // Create energy lines for triangles
+            window.appData.triangles.forEach(triangle => {
+                if (triangle.members.length >= 2) {
+                    for (let i = 0; i < triangle.members.length; i++) {
+                        const member1 = triangle.members[i];
+                        const member2 = triangle.members[(i + 1) % triangle.members.length];
+                        
+                        const point1 = participantPoints[member1.id];
+                        const point2 = participantPoints[member2.id];
+                        
+                        if (point1 && point2) {
+                            // Create line material with triangle color
+                            const lineColor = new THREE.Color(triangle.color);
+                            const lineMaterial = new THREE.LineBasicMaterial({
+                                color: lineColor,
+                                transparent: true,
+                                opacity: 0.6
+                            });
+                            
+                            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                                point1.position,
+                                point2.position
+                            ]);
+                            
+                            const line = new THREE.Line(lineGeometry, lineMaterial);
+                            window.earthScene.earth.add(line);
+                            window.earthScene.energyLines.push(line);
+                        }
+                    }
+                }
+            });
+            
+            // Update info text
+            const earthInfoText = document.getElementById('earth-info-text');
+            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
+            earthInfoText.textContent = infoText;
         }
         
         // Initialize the geographic selectors with hierarchy
@@ -1252,9 +1536,9 @@
                 // Update statistics on the map
                 updateStatisticsDisplay();
                 
-                // Update Earth space visualization if active
+                // Update 3D Earth visualization if active
                 if (window.appData.earthViewActive) {
-                    updateEarthSpaceVisualization();
+                    update3DEarthVisualization();
                 }
             } catch (error) {
                 console.error("Error joining network:", error);
@@ -1294,9 +1578,9 @@
             // Update statistics
             updateStatisticsDisplay();
             
-            // Update Earth space visualization if active
+            // Update 3D Earth visualization if active
             if (window.appData.earthViewActive) {
-                updateEarthSpaceVisualization();
+                update3DEarthVisualization();
             }
         }
         
@@ -1352,9 +1636,9 @@
                     // Update statistics
                     updateStatisticsDisplay();
                     
-                    // Update Earth space visualization if active
+                    // Update 3D Earth visualization if active
                     if (window.appData.earthViewActive) {
-                        updateEarthSpaceVisualization();
+                        update3DEarthVisualization();
                     }
                 }
             }, 1000);
@@ -1463,9 +1747,9 @@
             updateTriangles();
             updateStatisticsDisplay();
             
-            // Update Earth space visualization if active
+            // Update 3D Earth visualization if active
             if (window.appData.earthViewActive) {
-                updateEarthSpaceVisualization();
+                update3DEarthVisualization();
             }
         }
         
@@ -1488,10 +1772,10 @@
             document.getElementById('triangles-count').textContent = window.appData.triangles.length;
             document.getElementById('waiting-count').textContent = window.appData.participants.length % 3;
             
-            // Update Earth space info
-            const earthSpaceInfo = document.getElementById('earth-space-info');
+            // Update Earth info text
+            const earthInfoText = document.getElementById('earth-info-text');
             const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
-            earthSpaceInfo.textContent = infoText;
+            earthInfoText.textContent = infoText;
             
             // Update user's triangle status if logged in
             if (window.appData.userProfile) {
@@ -1535,18 +1819,18 @@
             updateElementText('select-option', 'selectOption');
             updateElementText('geolocate-text', 'useMyLocation');
             
-            // Update Earth space button text based on current state
-            const simulationText = document.getElementById('simulation-text');
+            // Update Earth view button text based on current state
+            const viewToggleText = document.getElementById('view-toggle-text');
             if (window.appData.earthViewActive) {
-                simulationText.textContent = getText('returnToMap');
+                viewToggleText.textContent = getText('returnToMap');
             } else {
-                simulationText.textContent = getText('viewEarthSpace');
+                viewToggleText.textContent = getText('viewEarthSpace');
             }
             
-            // Update Earth space info
-            const earthSpaceInfo = document.getElementById('earth-space-info');
+            // Update Earth info text
+            const earthInfoText = document.getElementById('earth-info-text');
             const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
-            earthSpaceInfo.textContent = infoText;
+            earthInfoText.textContent = infoText;
             
             // Update dynamic text if user is registered
             if (window.appData.userProfile) {
@@ -1674,49 +1958,45 @@
                 
                 // Update triangles
                 updateTriangles();
-                
-                // Update Earth space visualization if active
-                if (window.appData.earthViewActive) {
-                    updateEarthSpaceVisualization();
-                }
             });
         }
         
         // Toggle between map and Earth from space views
         function toggleVisualization() {
             const mapContainer = document.getElementById('map-container');
-            const earthSpaceContainer = document.getElementById('earth-space-container');
-            const simulationButton = document.getElementById('simulation-button');
-            const simulationText = document.getElementById('simulation-text');
+            const earthContainer = document.getElementById('earth-container');
+            const viewToggleButton = document.getElementById('view-toggle-button');
+            const viewToggleText = document.getElementById('view-toggle-text');
             
             if (!window.appData.earthViewActive) {
-                // Switch to Earth space view
+                // Switch to Earth view
                 mapContainer.classList.add('fade-out');
                 
                 setTimeout(() => {
                     mapContainer.classList.add('hidden');
                     mapContainer.classList.remove('fade-out');
                     
-                    earthSpaceContainer.classList.remove('hidden');
-                    earthSpaceContainer.classList.add('fade-in');
+                    earthContainer.classList.remove('hidden');
+                    earthContainer.classList.add('fade-in');
                     
                     window.appData.earthViewActive = true;
                     
                     // Update button
-                    simulationText.textContent = getText('returnToMap');
-                    simulationButton.classList.remove('bg-primary');
-                    simulationButton.classList.add('bg-purple-600');
+                    viewToggleText.textContent = getText('returnToMap');
+                    viewToggleButton.classList.remove('bg-primary');
+                    viewToggleButton.classList.add('bg-purple-600');
                     
-                    // Generate the visualization
-                    updateEarthSpaceVisualization();
+                    // Resize and update 3D Earth
+                    resizeEarthView();
+                    update3DEarthVisualization();
                 }, 300);
             } else {
                 // Switch back to map view
-                earthSpaceContainer.classList.add('fade-out');
+                earthContainer.classList.add('fade-out');
                 
                 setTimeout(() => {
-                    earthSpaceContainer.classList.add('hidden');
-                    earthSpaceContainer.classList.remove('fade-out');
+                    earthContainer.classList.add('hidden');
+                    earthContainer.classList.remove('fade-out');
                     
                     mapContainer.classList.remove('hidden');
                     mapContainer.classList.add('fade-in');
@@ -1724,117 +2004,13 @@
                     window.appData.earthViewActive = false;
                     
                     // Update button
-                    simulationText.textContent = getText('viewEarthSpace');
-                    simulationButton.classList.add('bg-primary');
-                    simulationButton.classList.remove('bg-purple-600');
+                    viewToggleText.textContent = getText('viewEarthSpace');
+                    viewToggleButton.classList.add('bg-primary');
+                    viewToggleButton.classList.remove('bg-purple-600');
                     
                     // Make sure map is updated
                     updateTriangles();
                 }, 300);
-            }
-        }
-        
-        // Update the Earth from space visualization
-        function updateEarthSpaceVisualization() {
-            const container = document.getElementById('earth-space-container');
-            if (!container || container.classList.contains('hidden')) return;
-            
-            const earth = container.querySelector('.earth');
-            if (!earth) return;
-            
-            // Clear existing triangle visualizations
-            earth.querySelectorAll('.triangle-node, .triangle-connection').forEach(el => el.remove());
-            
-            // Obtenir les dimensions de la Terre
-            const earthWidth = earth.offsetWidth;
-            const earthHeight = earth.offsetHeight;
-            
-            // Créer les nodes des participants actifs
-            window.appData.triangles.forEach((triangle) => {
-                const triangleNodes = [];
-                
-                // Créer un nœud pour chaque membre du triangle
-                triangle.members.forEach((member) => {
-                    // Déterminer la position approximative basée sur le continent
-                    const continent = member.continent;
-                    const continentPos = window.appData.geoData.continentPositions[continent] || 
-                                        { x: 0.5 + (Math.random() * 0.4 - 0.2), y: 0.5 + (Math.random() * 0.4 - 0.2) };
-                    
-                    // Ajouter une petite variation de position
-                    const xVar = Math.random() * 0.1 - 0.05;
-                    const yVar = Math.random() * 0.1 - 0.05;
-                    
-                    const x = (continentPos.x + xVar) * earthWidth;
-                    const y = (continentPos.y + yVar) * earthHeight;
-                    
-                    // Créer le nœud
-                    const node = document.createElement('div');
-                    node.className = 'triangle-node';
-                    node.style.left = `${x}px`;
-                    node.style.top = `${y}px`;
-                    node.style.width = '6px';
-                    node.style.height = '6px';
-                    node.style.color = triangle.color;
-                    node.style.backgroundColor = triangle.color;
-                    
-                    // Check if this is the current user's point
-                    const isUserPoint = window.appData.userProfile && member.id === window.appData.userProfile.id;
-                    if (isUserPoint) {
-                        node.style.width = '8px';
-                        node.style.height = '8px';
-                        node.style.color = '#FF5722';
-                        node.style.backgroundColor = '#FF5722';
-                        node.style.boxShadow = '0 0 15px #FF5722';
-                        node.style.zIndex = '12';
-                    }
-                    
-                    // Ajouter le nœud à la Terre
-                    earth.appendChild(node);
-                    
-                    // Stocker la référence et la position
-                    triangleNodes.push({
-                        element: node,
-                        x: x,
-                        y: y,
-                        member: member
-                    });
-                });
-                
-                // Créer les connexions entre les nœuds du triangle
-                for (let i = 0; i < triangleNodes.length; i++) {
-                    const startNode = triangleNodes[i];
-                    const endNode = triangleNodes[(i + 1) % triangleNodes.length];
-                    
-                    // Calculer la position et la longueur de la ligne
-                    const dx = endNode.x - startNode.x;
-                    const dy = endNode.y - startNode.y;
-                    const length = Math.sqrt(dx * dx + dy * dy);
-                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                    
-                    // Créer la ligne
-                    const connection = document.createElement('div');
-                    connection.className = 'triangle-connection';
-                    connection.style.left = `${startNode.x}px`;
-                    connection.style.top = `${startNode.y}px`;
-                    connection.style.width = `${length}px`;
-                    connection.style.transform = `rotate(${angle}deg)`;
-                    connection.style.color = triangle.color;
-                    
-                    // Ajouter la ligne à la Terre
-                    earth.appendChild(connection);
-                }
-            });
-            
-            // Mise à jour du compteur de triangles actifs
-            const earthSpaceInfo = document.getElementById('earth-space-info');
-            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
-            earthSpaceInfo.textContent = infoText;
-            
-            // Ajouter un effet d'intensité de l'énergie basé sur le nombre de triangles
-            const energyGlow = earth.querySelector('.energy-glow');
-            if (energyGlow) {
-                const intensity = Math.min(0.5, 0.2 + (window.appData.triangles.length * 0.03));
-                energyGlow.style.opacity = intensity;
             }
         }
         
@@ -2023,80 +2199,6 @@
             const lng = Math.random() * (r.lng[1] - r.lng[0]) + r.lng[0];
             
             return [lat, lng];
-        }
-        
-        // Simulation variables
-        window.simulationRunning = false;
-        let simulationParticipants = [];
-        let simulationInterval = null;
-        
-        // Start simulation if button text says to
-        function startSimulation() {
-            if (window.simulationRunning) return;
-            
-            window.simulationRunning = true;
-            simulationParticipants = [];
-            
-            // Add initial participants
-            addSimulationParticipants(10);
-            
-            // Add more participants gradually
-            simulationInterval = setInterval(() => {
-                if (window.appData.participants.length < 30) {
-                    addSimulationParticipants(5);
-                } else {
-                    clearInterval(simulationInterval);
-                }
-            }, 5000);
-            
-            // Save state to localStorage if available
-            if (window.localStorage) {
-                localStorage.setItem('simulationRunning', 'true');
-            }
-        }
-        
-        // Add simulated participants
-        function addSimulationParticipants(count) {
-            const newParticipants = [];
-            
-            for (let i = 0; i < count; i++) {
-                const continent = window.appData.geoData.continents[
-                    Math.floor(Math.random() * window.appData.geoData.continents.length)
-                ].id;
-                
-                const countries = window.appData.geoData.countries[continent];
-                const country = countries[Math.floor(Math.random() * countries.length)].id;
-                
-                const participant = {
-                    id: 'sim-' + Date.now() + '-' + i,
-                    name: 'Meditator ' + (window.appData.participants.length + i + 1),
-                    continent: continent,
-                    country: country,
-                    city: "Simulation City",
-                    coordinates: window.appData.geoData.coordinates[country] 
-                        ? [
-                            window.appData.geoData.coordinates[country][0] + (Math.random() * 10 - 5),
-                            window.appData.geoData.coordinates[country][1] + (Math.random() * 10 - 5)
-                          ]
-                        : getRandomCoordinatesForRegion(continent),
-                    joinedAt: new Date().getTime(),
-                    expiresAt: new Date().getTime() + (20 * 60 * 1000) // 20 minutes from now
-                };
-                
-                newParticipants.push(participant);
-                simulationParticipants.push(participant);
-            }
-            
-            // Add to participants array
-            window.appData.participants = window.appData.participants.concat(newParticipants);
-            
-            // Form triangles
-            formTriangles();
-            
-            // Update Earth space visualization if active
-            if (window.appData.earthViewActive) {
-                updateEarthSpaceVisualization();
-            }
         }
     </script>
 </body>
