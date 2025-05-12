@@ -149,36 +149,124 @@
             to { opacity: 0; }
         }
         
-        /* Style pour la vue des triangles en activité */
-        .triangle-space {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        /* Style pour la vue de la Terre depuis l'espace */
+        .earth-space {
+            background: radial-gradient(ellipse at center, #0D1117 0%, #020409 100%);
             border-radius: 8px;
             overflow: hidden;
             position: relative;
         }
         
-        .triangle-space-dot {
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 4s infinite;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        
+        .earth {
+            position: absolute;
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle at center, #1a4567 0%, #0f2d4a 100%);
+            box-shadow: 0 0 50px rgba(0, 80, 200, 0.5);
+            overflow: hidden;
+        }
+        
+        .continent {
+            position: absolute;
+            background-color: rgba(30, 130, 76, 0.5);
+            border-radius: 50%;
+        }
+        
+        .triangle-node {
             position: absolute;
             border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px currentColor;
+            transform: translate(-50%, -50%);
+            animation: nodeGlow 3s infinite;
+            z-index: 10;
         }
         
-        .triangle-space-line {
+        @keyframes nodeGlow {
+            0% { opacity: 0.6; box-shadow: 0 0 15px currentColor; }
+            50% { opacity: 1; box-shadow: 0 0 25px currentColor; }
+            100% { opacity: 0.6; box-shadow: 0 0 15px currentColor; }
+        }
+        
+        .triangle-connection {
             position: absolute;
-            background-color: rgba(255, 255, 255, 0.3);
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, currentColor 50%, transparent 100%);
             transform-origin: 0 50%;
+            opacity: 0.7;
+            z-index: 5;
+            animation: connectionPulse 4s infinite;
         }
         
-        .triangle-space-overlay {
+        @keyframes connectionPulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.4; }
+        }
+        
+        .energy-glow {
             position: absolute;
-            bottom: 10px;
-            left: 10px;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center, rgba(100, 200, 255, 0.2) 0%, transparent 70%);
+            animation: energyPulse 8s infinite;
+            z-index: 2;
+        }
+        
+        @keyframes energyPulse {
+            0% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+            100% { opacity: 0.3; transform: scale(0.9); }
+        }
+        
+        .earth-overlay {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
             background-color: rgba(0, 0, 0, 0.7);
             padding: 8px 16px;
             border-radius: 20px;
             color: white;
             font-size: 14px;
+            z-index: 20;
+        }
+        
+        .earth-rotation {
+            animation: rotateEarth 120s linear infinite;
+        }
+        
+        @keyframes rotateEarth {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .atmosphere {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 76%;
+            height: 76%;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 80px rgba(70, 130, 230, 0.3);
+            z-index: 1;
         }
     </style>
     <script>
@@ -218,7 +306,7 @@
             // Langues principales uniquement
             availableLanguages: ['en', 'fr', 'es', 'de', 'it', 'ru'],
             currentLanguage: 'en',
-            triangleSpaceActive: false, // Nouvelle propriété pour suivre l'état de la vue des triangles
+            earthViewActive: false, // Nouvelle propriété pour suivre l'état de la vue de la Terre
             translations: {
                 en: {
                     appTitle: "Triangle Meditation Network",
@@ -257,10 +345,10 @@
                     locationError: "Location could not be determined",
                     startSimulation: "Start 30-Person Simulation",
                     stopSimulation: "Stop Simulation",
-                    viewTriangleSpace: "View Triangle Space",
+                    viewEarthSpace: "View Earth from Space",
                     returnToMap: "Return to Map View",
-                    activeNetwork: "Active Energy Network",
-                    triangleSpaceInfo: "Meditation Energy: {0} triangles active"
+                    activeNetwork: "Global Energy Network",
+                    earthSpaceInfo: "Meditation Energy: {0} triangles active"
                 },
                 fr: {
                     appTitle: "Réseau de Méditation en Triangle",
@@ -299,10 +387,10 @@
                     locationError: "Impossible de déterminer votre position",
                     startSimulation: "Commencer simulation 30 participants",
                     stopSimulation: "Arrêter simulation",
-                    viewTriangleSpace: "Voir l'espace des triangles",
+                    viewEarthSpace: "Voir la Terre depuis l'espace",
                     returnToMap: "Retour à la carte",
-                    activeNetwork: "Réseau d'énergie actif",
-                    triangleSpaceInfo: "Énergie de méditation : {0} triangles actifs"
+                    activeNetwork: "Réseau d'énergie global",
+                    earthSpaceInfo: "Énergie de méditation : {0} triangles actifs"
                 },
                 es: {
                     appTitle: "Red de Meditación Triangular",
@@ -341,10 +429,10 @@
                     locationError: "No se pudo determinar la ubicación",
                     startSimulation: "Iniciar simulación 30 participantes",
                     stopSimulation: "Detener simulación",
-                    viewTriangleSpace: "Ver espacio de triángulos",
+                    viewEarthSpace: "Ver la Tierra desde el espacio",
                     returnToMap: "Volver al mapa",
-                    activeNetwork: "Red de energía activa",
-                    triangleSpaceInfo: "Energía de meditación: {0} triángulos activos"
+                    activeNetwork: "Red de energía global",
+                    earthSpaceInfo: "Energía de meditación: {0} triángulos activos"
                 },
                 de: {
                     appTitle: "Dreieck-Meditations-Netzwerk",
@@ -383,10 +471,10 @@
                     locationError: "Standort konnte nicht ermittelt werden",
                     startSimulation: "30-Personen-Simulation starten",
                     stopSimulation: "Simulation stoppen",
-                    viewTriangleSpace: "Dreiecksraum anzeigen",
+                    viewEarthSpace: "Erde aus dem Weltraum betrachten",
                     returnToMap: "Zurück zur Karte",
-                    activeNetwork: "Aktives Energienetzwerk",
-                    triangleSpaceInfo: "Meditationsenergie: {0} Dreiecke aktiv"
+                    activeNetwork: "Globales Energienetzwerk",
+                    earthSpaceInfo: "Meditationsenergie: {0} Dreiecke aktiv"
                 },
                 it: {
                     appTitle: "Rete di Meditazione Triangolare",
@@ -425,10 +513,10 @@
                     locationError: "Impossibile determinare la posizione",
                     startSimulation: "Avvia simulazione 30 partecipanti",
                     stopSimulation: "Ferma simulazione",
-                    viewTriangleSpace: "Visualizza spazio triangoli",
+                    viewEarthSpace: "Visualizza Terra dallo spazio",
                     returnToMap: "Torna alla mappa",
-                    activeNetwork: "Rete energetica attiva",
-                    triangleSpaceInfo: "Energia di meditazione: {0} triangoli attivi"
+                    activeNetwork: "Rete energetica globale",
+                    earthSpaceInfo: "Energia di meditazione: {0} triangoli attivi"
                 },
                 ru: {
                     appTitle: "Сеть Треугольной Медитации",
@@ -467,10 +555,10 @@
                     locationError: "Не удалось определить местоположение",
                     startSimulation: "Запустить симуляцию 30 участников",
                     stopSimulation: "Остановить симуляцию",
-                    viewTriangleSpace: "Просмотр пространства треугольников",
+                    viewEarthSpace: "Просмотр Земли из космоса",
                     returnToMap: "Вернуться к карте",
-                    activeNetwork: "Активная энергетическая сеть",
-                    triangleSpaceInfo: "Энергия медитации: {0} активных треугольников"
+                    activeNetwork: "Глобальная энергетическая сеть",
+                    earthSpaceInfo: "Энергия медитации: {0} активных треугольников"
                 }
             },
             // Geographical data for hierarchical selection
@@ -651,6 +739,15 @@
                     "vu": [-15.3767, 166.9592],
                     "nc": [-20.9043, 165.6180],
                     "ws": [-13.7590, -172.1046]
+                },
+                // Positions simplifiées des continents pour la vue spatiale
+                continentPositions: {
+                    "europe": { x: 0.52, y: 0.38 },
+                    "asia": { x: 0.65, y: 0.45 },
+                    "africa": { x: 0.52, y: 0.55 },
+                    "north-america": { x: 0.3, y: 0.42 },
+                    "south-america": { x: 0.35, y: 0.65 },
+                    "oceania": { x: 0.8, y: 0.7 }
                 }
             }
         };
@@ -699,7 +796,7 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold" id="active-triangles-title">Active Triangles</h2>
                 <button id="simulation-button" class="bg-primary hover:bg-opacity-90 text-white px-3 py-1 rounded text-sm">
-                    <span id="simulation-text">Start 30-Person Simulation</span>
+                    <span id="simulation-text">View Earth from Space</span>
                 </button>
             </div>
             
@@ -708,11 +805,15 @@
                 <svg id="map" class="w-full h-full"></svg>
             </div>
             
-            <!-- Triangle Space Container (alternative view) -->
-            <div id="triangle-space-container" class="w-full h-[400px] md:h-[500px] triangle-space relative hidden">
-                <!-- Triangle space visualization will be generated here -->
-                <div class="triangle-space-overlay">
-                    <span id="triangle-space-info">Meditation Energy: 0 triangles active</span>
+            <!-- Earth from Space Container (alternative view) -->
+            <div id="earth-space-container" class="w-full h-[400px] md:h-[500px] earth-space relative hidden">
+                <div class="earth earth-rotation">
+                    <div class="energy-glow"></div>
+                    <!-- Les continents et triangles seront ajoutés ici dynamiquement -->
+                </div>
+                <div class="atmosphere"></div>
+                <div class="earth-overlay">
+                    <span id="earth-space-info">Meditation Energy: 0 triangles active</span>
                 </div>
             </div>
             
@@ -827,6 +928,9 @@
             // Update triangles regularly to ensure animations run smoothly
             setInterval(() => {
                 updateTriangles();
+                if (window.appData.earthViewActive) {
+                    updateEarthSpaceVisualization();
+                }
             }, 3000);
             
             // Register button handlers
@@ -839,9 +943,54 @@
                 document.getElementById('leave-network').addEventListener('click', leaveNetwork);
             }
             
+            // Create starry background for Earth view
+            createStarryBackground();
+            
             // Load user data from localStorage if available
             loadUserData();
         });
+        
+        // Create starry background for Earth view
+        function createStarryBackground() {
+            const container = document.getElementById('earth-space-container');
+            if (!container) return;
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // Add stars to the background
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.left = `${Math.random() * width}px`;
+                star.style.top = `${Math.random() * height}px`;
+                star.style.animationDelay = `${Math.random() * 4}s`;
+                container.appendChild(star);
+            }
+            
+            // Add continents to Earth
+            const earth = container.querySelector('.earth');
+            if (earth) {
+                Object.entries(window.appData.geoData.continentPositions).forEach(([continent, position]) => {
+                    const continentEl = document.createElement('div');
+                    continentEl.className = 'continent';
+                    continentEl.dataset.continent = continent;
+                    
+                    // Taille et position aléatoire autour du point central du continent
+                    const size = 6 + Math.random() * 10; // Taille entre 6% et 16% de la Terre
+                    continentEl.style.width = `${size}%`;
+                    continentEl.style.height = `${size * (1 + Math.random() * 0.5)}%`;
+                    
+                    // Position basée sur les coordonnées simplifiées
+                    continentEl.style.left = `${position.x * 100}%`;
+                    continentEl.style.top = `${position.y * 100}%`;
+                    
+                    earth.appendChild(continentEl);
+                });
+            }
+        }
         
         // Initialize the geographic selectors with hierarchy
         function initializeGeoSelectors() {
@@ -1103,9 +1252,9 @@
                 // Update statistics on the map
                 updateStatisticsDisplay();
                 
-                // Update triangle space visualization if active
-                if (window.appData.triangleSpaceActive) {
-                    updateTriangleSpaceVisualization();
+                // Update Earth space visualization if active
+                if (window.appData.earthViewActive) {
+                    updateEarthSpaceVisualization();
                 }
             } catch (error) {
                 console.error("Error joining network:", error);
@@ -1145,9 +1294,9 @@
             // Update statistics
             updateStatisticsDisplay();
             
-            // Update triangle space visualization if active
-            if (window.appData.triangleSpaceActive) {
-                updateTriangleSpaceVisualization();
+            // Update Earth space visualization if active
+            if (window.appData.earthViewActive) {
+                updateEarthSpaceVisualization();
             }
         }
         
@@ -1203,9 +1352,9 @@
                     // Update statistics
                     updateStatisticsDisplay();
                     
-                    // Update triangle space visualization if active
-                    if (window.appData.triangleSpaceActive) {
-                        updateTriangleSpaceVisualization();
+                    // Update Earth space visualization if active
+                    if (window.appData.earthViewActive) {
+                        updateEarthSpaceVisualization();
                     }
                 }
             }, 1000);
@@ -1314,9 +1463,9 @@
             updateTriangles();
             updateStatisticsDisplay();
             
-            // Update triangle space visualization if active
-            if (window.appData.triangleSpaceActive) {
-                updateTriangleSpaceVisualization();
+            // Update Earth space visualization if active
+            if (window.appData.earthViewActive) {
+                updateEarthSpaceVisualization();
             }
         }
         
@@ -1339,10 +1488,10 @@
             document.getElementById('triangles-count').textContent = window.appData.triangles.length;
             document.getElementById('waiting-count').textContent = window.appData.participants.length % 3;
             
-            // Update triangle space info
-            const triangleSpaceInfo = document.getElementById('triangle-space-info');
-            const infoText = getText('triangleSpaceInfo').replace('{0}', window.appData.triangles.length);
-            triangleSpaceInfo.textContent = infoText;
+            // Update Earth space info
+            const earthSpaceInfo = document.getElementById('earth-space-info');
+            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
+            earthSpaceInfo.textContent = infoText;
             
             // Update user's triangle status if logged in
             if (window.appData.userProfile) {
@@ -1386,18 +1535,18 @@
             updateElementText('select-option', 'selectOption');
             updateElementText('geolocate-text', 'useMyLocation');
             
-            // Update simulation/triangle space button text based on current state
+            // Update Earth space button text based on current state
             const simulationText = document.getElementById('simulation-text');
-            if (window.appData.triangleSpaceActive) {
+            if (window.appData.earthViewActive) {
                 simulationText.textContent = getText('returnToMap');
             } else {
-                simulationText.textContent = getText('viewTriangleSpace');
+                simulationText.textContent = getText('viewEarthSpace');
             }
             
-            // Update triangle space info
-            const triangleSpaceInfo = document.getElementById('triangle-space-info');
-            const infoText = getText('triangleSpaceInfo').replace('{0}', window.appData.triangles.length);
-            triangleSpaceInfo.textContent = infoText;
+            // Update Earth space info
+            const earthSpaceInfo = document.getElementById('earth-space-info');
+            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
+            earthSpaceInfo.textContent = infoText;
             
             // Update dynamic text if user is registered
             if (window.appData.userProfile) {
@@ -1526,41 +1675,32 @@
                 // Update triangles
                 updateTriangles();
                 
-                // Update triangle space visualization if active
-                if (window.appData.triangleSpaceActive) {
-                    updateTriangleSpaceVisualization();
+                // Update Earth space visualization if active
+                if (window.appData.earthViewActive) {
+                    updateEarthSpaceVisualization();
                 }
             });
-            
-            // Initialize triangle space visualization
-            initializeTriangleSpace();
         }
         
-        // Initialize the triangle space visualization
-        function initializeTriangleSpace() {
-            // The container is already defined in HTML, we'll just add elements dynamically
-            // when the visualization is active
-        }
-        
-        // Toggle between map and triangle space views
+        // Toggle between map and Earth from space views
         function toggleVisualization() {
             const mapContainer = document.getElementById('map-container');
-            const triangleSpaceContainer = document.getElementById('triangle-space-container');
+            const earthSpaceContainer = document.getElementById('earth-space-container');
             const simulationButton = document.getElementById('simulation-button');
             const simulationText = document.getElementById('simulation-text');
             
-            if (!window.appData.triangleSpaceActive) {
-                // Switch to triangle space view
+            if (!window.appData.earthViewActive) {
+                // Switch to Earth space view
                 mapContainer.classList.add('fade-out');
                 
                 setTimeout(() => {
                     mapContainer.classList.add('hidden');
                     mapContainer.classList.remove('fade-out');
                     
-                    triangleSpaceContainer.classList.remove('hidden');
-                    triangleSpaceContainer.classList.add('fade-in');
+                    earthSpaceContainer.classList.remove('hidden');
+                    earthSpaceContainer.classList.add('fade-in');
                     
-                    window.appData.triangleSpaceActive = true;
+                    window.appData.earthViewActive = true;
                     
                     // Update button
                     simulationText.textContent = getText('returnToMap');
@@ -1568,23 +1708,23 @@
                     simulationButton.classList.add('bg-purple-600');
                     
                     // Generate the visualization
-                    updateTriangleSpaceVisualization();
+                    updateEarthSpaceVisualization();
                 }, 300);
             } else {
                 // Switch back to map view
-                triangleSpaceContainer.classList.add('fade-out');
+                earthSpaceContainer.classList.add('fade-out');
                 
                 setTimeout(() => {
-                    triangleSpaceContainer.classList.add('hidden');
-                    triangleSpaceContainer.classList.remove('fade-out');
+                    earthSpaceContainer.classList.add('hidden');
+                    earthSpaceContainer.classList.remove('fade-out');
                     
                     mapContainer.classList.remove('hidden');
                     mapContainer.classList.add('fade-in');
                     
-                    window.appData.triangleSpaceActive = false;
+                    window.appData.earthViewActive = false;
                     
                     // Update button
-                    simulationText.textContent = getText('viewTriangleSpace');
+                    simulationText.textContent = getText('viewEarthSpace');
                     simulationButton.classList.add('bg-primary');
                     simulationButton.classList.remove('bg-purple-600');
                     
@@ -1594,124 +1734,108 @@
             }
         }
         
-        // Update the triangle space visualization
-        function updateTriangleSpaceVisualization() {
-            const container = document.getElementById('triangle-space-container');
+        // Update the Earth from space visualization
+        function updateEarthSpaceVisualization() {
+            const container = document.getElementById('earth-space-container');
             if (!container || container.classList.contains('hidden')) return;
             
-            // Clear existing visualization
-            container.querySelectorAll('.triangle-space-dot, .triangle-space-line').forEach(el => el.remove());
+            const earth = container.querySelector('.earth');
+            if (!earth) return;
             
-            const width = container.clientWidth;
-            const height = container.clientHeight;
+            // Clear existing triangle visualizations
+            earth.querySelectorAll('.triangle-node, .triangle-connection').forEach(el => el.remove());
             
-            // Create a starry background effect
-            for (let i = 0; i < 100; i++) {
-                const star = document.createElement('div');
-                star.className = 'triangle-space-dot';
-                star.style.left = `${Math.random() * width}px`;
-                star.style.top = `${Math.random() * height}px`;
-                star.style.width = `${Math.random() * 3 + 1}px`;
-                star.style.height = `${Math.random() * 3 + 1}px`;
-                star.style.opacity = Math.random() * 0.7 + 0.3;
-                container.appendChild(star);
-            }
+            // Obtenir les dimensions de la Terre
+            const earthWidth = earth.offsetWidth;
+            const earthHeight = earth.offsetHeight;
             
-            // Draw triangles
-            window.appData.triangles.forEach((triangle, index) => {
-                // Calculate points in abstract space
-                const points = [];
-                const centerX = width / 2;
-                const centerY = height / 2;
-                const radius = Math.min(width, height) * 0.35;
+            // Créer les nodes des participants actifs
+            window.appData.triangles.forEach((triangle) => {
+                const triangleNodes = [];
                 
-                // Position triangle points in circular pattern
-                for (let i = 0; i < 3; i++) {
-                    const angle = (index * 30 + i * 120) * Math.PI / 180;
-                    const x = centerX + radius * Math.cos(angle) * (0.7 + Math.random() * 0.3);
-                    const y = centerY + radius * Math.sin(angle) * (0.7 + Math.random() * 0.3);
-                    points.push({x, y});
-                }
-                
-                // Draw triangle points
-                points.forEach((point, i) => {
-                    const dot = document.createElement('div');
-                    dot.className = 'triangle-space-dot';
-                    dot.style.left = `${point.x}px`;
-                    dot.style.top = `${point.y}px`;
-                    dot.style.width = '8px';
-                    dot.style.height = '8px';
-                    dot.style.backgroundColor = triangle.color;
-                    dot.style.animation = `pulse 2s infinite ${i * 0.3}s`;
-                    dot.style.boxShadow = `0 0 15px ${triangle.color}`;
-                    container.appendChild(dot);
+                // Créer un nœud pour chaque membre du triangle
+                triangle.members.forEach((member) => {
+                    // Déterminer la position approximative basée sur le continent
+                    const continent = member.continent;
+                    const continentPos = window.appData.geoData.continentPositions[continent] || 
+                                        { x: 0.5 + (Math.random() * 0.4 - 0.2), y: 0.5 + (Math.random() * 0.4 - 0.2) };
                     
-                    // Add tooltip with participant name
-                    dot.title = triangle.members[i]?.name || 'Participant';
+                    // Ajouter une petite variation de position
+                    const xVar = Math.random() * 0.1 - 0.05;
+                    const yVar = Math.random() * 0.1 - 0.05;
+                    
+                    const x = (continentPos.x + xVar) * earthWidth;
+                    const y = (continentPos.y + yVar) * earthHeight;
+                    
+                    // Créer le nœud
+                    const node = document.createElement('div');
+                    node.className = 'triangle-node';
+                    node.style.left = `${x}px`;
+                    node.style.top = `${y}px`;
+                    node.style.width = '6px';
+                    node.style.height = '6px';
+                    node.style.color = triangle.color;
+                    node.style.backgroundColor = triangle.color;
+                    
+                    // Check if this is the current user's point
+                    const isUserPoint = window.appData.userProfile && member.id === window.appData.userProfile.id;
+                    if (isUserPoint) {
+                        node.style.width = '8px';
+                        node.style.height = '8px';
+                        node.style.color = '#FF5722';
+                        node.style.backgroundColor = '#FF5722';
+                        node.style.boxShadow = '0 0 15px #FF5722';
+                        node.style.zIndex = '12';
+                    }
+                    
+                    // Ajouter le nœud à la Terre
+                    earth.appendChild(node);
+                    
+                    // Stocker la référence et la position
+                    triangleNodes.push({
+                        element: node,
+                        x: x,
+                        y: y,
+                        member: member
+                    });
                 });
                 
-                // Draw lines connecting points
-                for (let i = 0; i < 3; i++) {
-                    const start = points[i];
-                    const end = points[(i + 1) % 3];
+                // Créer les connexions entre les nœuds du triangle
+                for (let i = 0; i < triangleNodes.length; i++) {
+                    const startNode = triangleNodes[i];
+                    const endNode = triangleNodes[(i + 1) % triangleNodes.length];
                     
-                    const dx = end.x - start.x;
-                    const dy = end.y - start.y;
+                    // Calculer la position et la longueur de la ligne
+                    const dx = endNode.x - startNode.x;
+                    const dy = endNode.y - startNode.y;
                     const length = Math.sqrt(dx * dx + dy * dy);
                     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
                     
-                    const line = document.createElement('div');
-                    line.className = 'triangle-space-line';
-                    line.style.left = `${start.x}px`;
-                    line.style.top = `${start.y}px`;
-                    line.style.width = `${length}px`;
-                    line.style.height = '2px';
-                    line.style.transform = `rotate(${angle}deg)`;
-                    line.style.backgroundColor = triangle.color;
-                    line.style.opacity = '0.6';
-                    line.style.boxShadow = `0 0 8px ${triangle.color}`;
-                    container.appendChild(line);
+                    // Créer la ligne
+                    const connection = document.createElement('div');
+                    connection.className = 'triangle-connection';
+                    connection.style.left = `${startNode.x}px`;
+                    connection.style.top = `${startNode.y}px`;
+                    connection.style.width = `${length}px`;
+                    connection.style.transform = `rotate(${angle}deg)`;
+                    connection.style.color = triangle.color;
+                    
+                    // Ajouter la ligne à la Terre
+                    earth.appendChild(connection);
                 }
             });
             
-            // Visualize waiting participants
-            const waitingCount = window.appData.participants.length % 3;
-            if (waitingCount > 0) {
-                const centerX = width / 2;
-                const centerY = height * 0.8;
-                
-                for (let i = 0; i < waitingCount; i++) {
-                    const offset = (i - (waitingCount - 1) / 2) * 40;
-                    const participant = window.appData.participants[window.appData.participants.length - waitingCount + i];
-                    
-                    const dot = document.createElement('div');
-                    dot.className = 'triangle-space-dot';
-                    dot.style.left = `${centerX + offset}px`;
-                    dot.style.top = `${centerY}px`;
-                    dot.style.width = '8px';
-                    dot.style.height = '8px';
-                    dot.style.backgroundColor = '#999999';
-                    dot.style.animation = 'pulse 2s infinite';
-                    
-                    // Special highlight for user
-                    if (window.appData.userProfile && participant?.id === window.appData.userProfile.id) {
-                        dot.style.backgroundColor = '#FF5722';
-                        dot.style.boxShadow = '0 0 15px #FF5722';
-                        dot.style.width = '10px';
-                        dot.style.height = '10px';
-                    }
-                    
-                    container.appendChild(dot);
-                    
-                    // Add tooltip with participant name
-                    dot.title = participant?.name || 'Waiting Participant';
-                }
-            }
+            // Mise à jour du compteur de triangles actifs
+            const earthSpaceInfo = document.getElementById('earth-space-info');
+            const infoText = getText('earthSpaceInfo').replace('{0}', window.appData.triangles.length);
+            earthSpaceInfo.textContent = infoText;
             
-            // Update info overlay
-            const triangleSpaceInfo = document.getElementById('triangle-space-info');
-            const infoText = getText('triangleSpaceInfo').replace('{0}', window.appData.triangles.length);
-            triangleSpaceInfo.textContent = infoText;
+            // Ajouter un effet d'intensité de l'énergie basé sur le nombre de triangles
+            const energyGlow = earth.querySelector('.energy-glow');
+            if (energyGlow) {
+                const intensity = Math.min(0.5, 0.2 + (window.appData.triangles.length * 0.03));
+                energyGlow.style.opacity = intensity;
+            }
         }
         
         // Handle zoom events
@@ -1969,9 +2093,9 @@
             // Form triangles
             formTriangles();
             
-            // Update triangle space visualization if active
-            if (window.appData.triangleSpaceActive) {
-                updateTriangleSpaceVisualization();
+            // Update Earth space visualization if active
+            if (window.appData.earthViewActive) {
+                updateEarthSpaceVisualization();
             }
         }
     </script>
