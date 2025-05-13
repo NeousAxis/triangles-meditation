@@ -4,6 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Triangle Meditation Network</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    
+    <script>
+      // Configuration Firebase pour votre application
+      const firebaseConfig = {
+        apiKey: "AIzaSyBaMcVHdo2yWYCO0K19iLQkWg1W3_zxy_8",
+        authDomain: "triangles-meditation.firebaseapp.com",
+        databaseURL: "https://triangles-meditation-default-rtdb.firebaseio.com",
+        projectId: "triangles-meditation",
+        storageBucket: "triangles-meditation.appspot.com",
+        messagingSenderId: "501789370541",
+        appId: "1:501789370541:web:11dd620095e401503a7e24",
+        measurementId: "G-QPWKZZN6T1"
+      };
+
+      // Initialiser Firebase
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
@@ -742,7 +765,6 @@
             // Register button handlers
             document.getElementById('join-network').addEventListener('click', joinNetwork);
             document.getElementById('geolocate-button').addEventListener('click', getUserLocation);
-            document.getElementById('simulation-button').addEventListener('click', toggleSimulation);
             
             // Add leave network button handler
             if (document.getElementById('leave-network')) {
@@ -751,7 +773,82 @@
             
             // Load user data from localStorage if available
             loadUserData();
+            
+            // IMPORTANT: Écouter les changements de participants en temps réel
+            listenForParticipants();
+            
+            // Nettoyer les participants expirés périodiquement
+            setInterval(cleanupExpiredParticipants, 60000); // Toutes les minutes
         });
+        
+        // Fonction pour écouter les participants en temps réel
+        function listenForParticipants() {
+            database.ref('participants').on('value', (snapshot) => {
+                // Réinitialiser les participants locaux (tout en préservant l'utilisateur actuel)
+                const currentUser = window.appData.userProfile;
+                window.appData.participants = [];
+                
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const participant = childSnapshot.val();
+                        
+                        // Vérifier si le participant n'a pas expiré
+                        if (participant.expiresAt > Date.now()) {
+                            window.appData.participants.push(participant);
+                        } else {
+                            // Supprimer les participants expirés
+                            database.ref('participants/' + childSnapshot.key).remove();
+                        }
+                    });
+                }
+                
+                // Former les triangles avec les participants
+                formTriangles();
+                
+                // Mettre à jour la visualisation
+                updateTriangles();
+                
+                // Vérifier si l'utilisateur actuel fait partie d'un triangle
+                if (currentUser) {
+                    const userTriangle = findUserTriangle();
+                    if (userTriangle) {
+                        document.getElementById('triangle-status').textContent = 
+                            `You are part of triangle #${userTriangle.id}`;
+                    } else {
+                        document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
+                    }
+                }
+            });
+        }
+        
+        // Nettoyer les participants expirés
+        function cleanupExpiredParticipants() {
+            const now = Date.now();
+            database.ref('participants').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const participant = childSnapshot.val();
+                        if (participant.expiresAt < now) {
+                            database.ref('participants/' + childSnapshot.key).remove();
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Mettre à jour régulièrement le temps d'expiration du profil utilisateur
+        function startExpirationUpdater(userId) {
+            // Mettre à jour toutes les minutes
+            const interval = setInterval(() => {
+                if (!window.appData.userProfile) {
+                    clearInterval(interval);
+                    return;
+                }
+                
+                const expiresAt = Date.now() + (19 * 60 * 1000); // 19 minutes
+                database.ref('participants/' + userId + '/expiresAt').set(expiresAt);
+            }, 60000); // Une minute
+        }
         
         // Initialize the geographic selectors with hierarchy
         function initializeGeoSelectors() {
@@ -963,29 +1060,35 @@
                 // Get coordinates for the city
                 const coordinates = await getCityCoordinates(city, country);
                 
+                // Générer un ID unique
+                const userId = 'user-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                
                 // Create user profile
-                window.appData.userProfile = {
-                    id: 'user-' + Date.now(),
+                const userProfile = {
+                    id: userId,
                     name: userName,
                     continent: continent,
                     country: country,
                     city: city,
                     coordinates: coordinates,
                     language: window.appData.currentLanguage,
-                    joinedAt: new Date().getTime(),
-                    expiresAt: new Date().getTime() + (20 * 60 * 1000) // 20 minutes from now
+                    joinedAt: Date.now(),
+                    expiresAt: Date.now() + (20 * 60 * 1000) // 20 minutes
                 };
+                
+                // Sauvegarder le profil localement
+                window.appData.userProfile = userProfile;
                 
                 // Save to localStorage if available
                 if (window.localStorage) {
-                    localStorage.setItem('userProfile', JSON.stringify(window.appData.userProfile));
+                    localStorage.setItem('userProfile', JSON.stringify(userProfile));
                 }
                 
-                // Add user to participants
-                window.appData.participants.push(window.appData.userProfile);
+                // IMPORTANT: Enregistrer dans Firebase
+                await database.ref('participants/' + userId).set(userProfile);
                 
-                // Form triangles
-                formTriangles();
+                // Configurer la suppression automatique à la déconnexion
+                database.ref('participants/' + userId).onDisconnect().remove();
                 
                 // Hide registration form and show status panel
                 document.getElementById('registration-form').classList.add('hidden');
@@ -996,13 +1099,7 @@
                     `${getText('yourCoordinates')}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}]`;
                 
                 // Update triangle status
-                const userTriangle = findUserTriangle();
-                if (userTriangle) {
-                    document.getElementById('triangle-status').textContent = 
-                        `You are part of triangle #${userTriangle.id}`;
-                } else {
-                    document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
-                }
+                document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
                 
                 // Update time remaining message
                 document.getElementById('time-remaining').textContent = getText('timeRemaining');
@@ -1010,8 +1107,9 @@
                 // Start the countdown timer for the position
                 startPositionTimer();
                 
-                // Update statistics on the map
-                updateStatisticsDisplay();
+                // Démarrer la mise à jour du temps d'expiration
+                startExpirationUpdater(userId);
+                
             } catch (error) {
                 console.error("Error joining network:", error);
                 
@@ -1026,11 +1124,8 @@
         function leaveNetwork() {
             if (!window.appData.userProfile) return;
             
-            // Remove user from participants
-            const index = window.appData.participants.findIndex(p => p.id === window.appData.userProfile.id);
-            if (index !== -1) {
-                window.appData.participants.splice(index, 1);
-            }
+            // IMPORTANT: Supprimer de Firebase
+            database.ref('participants/' + window.appData.userProfile.id).remove();
             
             // Clear user profile
             window.appData.userProfile = null;
@@ -1040,15 +1135,9 @@
                 localStorage.removeItem('userProfile');
             }
             
-            // Re-form triangles
-            formTriangles();
-            
             // Reset UI
             document.getElementById('status-panel').classList.add('hidden');
             document.getElementById('registration-form').classList.remove('hidden');
-            
-            // Update statistics
-            updateStatisticsDisplay();
         }
         
         // Start the 20-minute countdown timer for the user's position
@@ -1068,25 +1157,27 @@
                 
                 // Update expiration time in profile
                 if (window.appData.userProfile) {
-                    window.appData.userProfile.expiresAt = new Date().getTime() + (timeLeft * 1000);
+                    window.appData.userProfile.expiresAt = Date.now() + (timeLeft * 1000);
                     
                     // Save to localStorage if available
                     if (window.localStorage) {
                         localStorage.setItem('userProfile', JSON.stringify(window.appData.userProfile));
+                    }
+                    
+                    // Mettre à jour dans Firebase toutes les minutes
+                    if (seconds === 0) {
+                        database.ref('participants/' + window.appData.userProfile.id + '/expiresAt')
+                            .set(window.appData.userProfile.expiresAt);
                     }
                 }
                 
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
                     
-                    // Remove user from participants
-                    const index = window.appData.participants.findIndex(p => p.id === window.appData.userProfile.id);
-                    if (index !== -1) {
-                        window.appData.participants.splice(index, 1);
+                    // IMPORTANT: Supprimer de Firebase
+                    if (window.appData.userProfile) {
+                        database.ref('participants/' + window.appData.userProfile.id).remove();
                     }
-                    
-                    // Re-form triangles
-                    formTriangles();
                     
                     // Reset UI
                     document.getElementById('status-panel').classList.add('hidden');
@@ -1099,9 +1190,6 @@
                     if (window.localStorage) {
                         localStorage.removeItem('userProfile');
                     }
-                    
-                    // Update statistics
-                    updateStatisticsDisplay();
                 }
             }, 1000);
         }
@@ -1119,11 +1207,9 @@
                     if (profile.expiresAt > Date.now()) {
                         window.appData.userProfile = profile;
                         
-                        // Add user to participants
-                        window.appData.participants.push(profile);
-                        
-                        // Form triangles
-                        formTriangles();
+                        // IMPORTANT: Réenregistrer dans Firebase
+                        database.ref('participants/' + profile.id).set(profile);
+                        database.ref('participants/' + profile.id).onDisconnect().remove();
                         
                         // Hide registration form and show status panel
                         document.getElementById('registration-form').classList.add('hidden');
@@ -1134,21 +1220,16 @@
                             `${getText('yourCoordinates')}: [${profile.coordinates[0].toFixed(2)}, ${profile.coordinates[1].toFixed(2)}]`;
                         
                         // Update triangle status
-                        const userTriangle = findUserTriangle();
-                        if (userTriangle) {
-                            document.getElementById('triangle-status').textContent = 
-                                `You are part of triangle #${userTriangle.id}`;
-                        } else {
-                            document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
-                        }
+                        document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
                         
-                        // Update time remaining
-                        const timeRemaining = Math.round((profile.expiresAt - Date.now()) / 1000);
-                        const minutes = Math.ceil(timeRemaining / 60);
+                        // Update time remaining message
                         document.getElementById('time-remaining').textContent = getText('timeRemaining');
                         
                         // Restart the countdown timer
                         startPositionTimer();
+                        
+                        // Démarrer la mise à jour du temps d'expiration
+                        startExpirationUpdater(profile.id);
                         
                         return true;
                     } else {
@@ -1198,15 +1279,14 @@
                     id: window.appData.triangles.length + 1,
                     members: triangleMembers,
                     color: getRandomColor(),
-                    createdAt: new Date().getTime()
+                    createdAt: Date.now()
                 };
                 
                 // Add triangle to the list
                 window.appData.triangles.push(triangle);
             }
             
-            // The remaining participants (0, 1, or 2) will wait for more participants
-            updateTriangles();
+            // Update statistics
             updateStatisticsDisplay();
         }
         
@@ -1270,7 +1350,6 @@
             updateElementText('status-title', 'networkStatus');
             updateElementText('select-option', 'selectOption');
             updateElementText('geolocate-text', 'useMyLocation');
-            updateElementText('simulation-text', window.simulationRunning ? 'stopSimulation' : 'startSimulation');
             
             // Update dynamic text if user is registered
             if (window.appData.userProfile) {
@@ -1588,135 +1667,15 @@
             return [lat, lng];
         }
         
-        // Simulation variables
-        window.simulationRunning = false;
-        let simulationParticipants = [];
-        let simulationInterval = null;
-        
-        // Toggle 30-person simulation
-        function toggleSimulation() {
-            if (window.simulationRunning) {
-                stopSimulation();
-            } else {
-                startSimulation();
+        // Gérer les déconnexions réseau
+        window.addEventListener('online', function() {
+            // Si l'utilisateur se reconnecte et qu'il était déjà connecté
+            if (window.appData.userProfile) {
+                // Réenregistrer dans Firebase
+                database.ref('participants/' + window.appData.userProfile.id).set(window.appData.userProfile);
+                database.ref('participants/' + window.appData.userProfile.id).onDisconnect().remove();
             }
-        }
-        
-        // Start the 30-person simulation
-        function startSimulation() {
-            if (window.simulationRunning) return;
-            
-            window.simulationRunning = true;
-            simulationParticipants = [];
-            
-            // Update button text
-            const simulationButton = document.getElementById('simulation-button');
-            const simulationText = document.getElementById('simulation-text');
-            simulationText.textContent = getText('stopSimulation');
-            simulationButton.classList.add('bg-red-500');
-            simulationButton.classList.remove('bg-primary');
-            
-            // Add initial participants
-            addSimulationParticipants(10);
-            
-            // Add more participants gradually
-            simulationInterval = setInterval(() => {
-                if (window.appData.participants.length < 30) {
-                    addSimulationParticipants(5);
-                } else {
-                    clearInterval(simulationInterval);
-                }
-            }, 5000);
-            
-            // Save state to localStorage if available
-            if (window.localStorage) {
-                localStorage.setItem('simulationRunning', 'true');
-            }
-        }
-        
-        // Stop the simulation
-        function stopSimulation() {
-            if (!window.simulationRunning) return;
-            
-            window.simulationRunning = false;
-            clearInterval(simulationInterval);
-            
-            // Update button text
-            const simulationButton = document.getElementById('simulation-button');
-            const simulationText = document.getElementById('simulation-text');
-            simulationText.textContent = getText('startSimulation');
-            simulationButton.classList.remove('bg-red-500');
-            simulationButton.classList.add('bg-primary');
-            
-            // Remove all simulation participants
-            simulationParticipants.forEach(participant => {
-                const index = window.appData.participants.findIndex(p => p.id === participant.id);
-                if (index !== -1) {
-                    window.appData.participants.splice(index, 1);
-                }
-            });
-            simulationParticipants = [];
-            
-            // Reform triangles
-            formTriangles();
-            
-            // Save state to localStorage if available
-            if (window.localStorage) {
-                localStorage.setItem('simulationRunning', 'false');
-            }
-        }
-        
-        // Add simulated participants
-        function addSimulationParticipants(count) {
-            const newParticipants = [];
-            
-            for (let i = 0; i < count; i++) {
-                const continent = window.appData.geoData.continents[
-                    Math.floor(Math.random() * window.appData.geoData.continents.length)
-                ].id;
-                
-                const countries = window.appData.geoData.countries[continent];
-                const country = countries[Math.floor(Math.random() * countries.length)].id;
-                
-                const participant = {
-                    id: 'sim-' + Date.now() + '-' + i,
-                    name: 'Meditator ' + (window.appData.participants.length + i + 1),
-                    continent: continent,
-                    country: country,
-                    city: "Simulation City",
-                    coordinates: window.appData.geoData.coordinates[country] 
-                        ? [
-                            window.appData.geoData.coordinates[country][0] + (Math.random() * 10 - 5),
-                            window.appData.geoData.coordinates[country][1] + (Math.random() * 10 - 5)
-                          ]
-                        : getRandomCoordinatesForRegion(continent),
-                    joinedAt: new Date().getTime(),
-                    expiresAt: new Date().getTime() + (20 * 60 * 1000) // 20 minutes from now
-                };
-                
-                newParticipants.push(participant);
-                simulationParticipants.push(participant);
-            }
-            
-            // Add to participants array
-            window.appData.participants = window.appData.participants.concat(newParticipants);
-            
-            // Form triangles
-            formTriangles();
-        }
-        
-        // Check if simulation was previously running
-        function checkSimulationStatus() {
-            if (window.localStorage) {
-                const wasRunning = localStorage.getItem('simulationRunning') === 'true';
-                if (wasRunning) {
-                    startSimulation();
-                }
-            }
-        }
-        
-        // Initialize simulation status on page load
-        checkSimulationStatus();
+        });
     </script>
 </body>
 </html>
