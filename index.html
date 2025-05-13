@@ -622,6 +622,9 @@
         <div class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md map-container overflow-hidden">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold" id="active-triangles-title">Active Triangles</h2>
+                <button id="simulation-button" class="bg-primary hover:bg-opacity-90 text-white px-3 py-1 rounded text-sm">
+                    <span id="simulation-text">Start 30-Person Simulation</span>
+                </button>
             </div>
             <div id="map-container" class="w-full h-[400px] md:h-[500px] relative">
                 <svg id="map" class="w-full h-full"></svg>
@@ -742,6 +745,7 @@
             // Register button handlers
             document.getElementById('join-network').addEventListener('click', joinNetwork);
             document.getElementById('geolocate-button').addEventListener('click', getUserLocation);
+            document.getElementById('simulation-button').addEventListener('click', toggleSimulation);
             
             // Add leave network button handler
             if (document.getElementById('leave-network')) {
@@ -1587,6 +1591,27 @@
             return [lat, lng];
         }
         
+        // Simulation variables
+        window.simulationRunning = false;
+        let simulationParticipants = [];
+        let simulationInterval = null;
+        
+        // Toggle 30-person simulation
+        function toggleSimulation() {
+            if (window.simulationRunning) {
+                stopSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+        
+        // Start the 30-person simulation
+        function startSimulation() {
+            if (window.simulationRunning) return;
+            
+            window.simulationRunning = true;
+            simulationParticipants = [];
+            
             // Update button text
             const simulationButton = document.getElementById('simulation-button');
             const simulationText = document.getElementById('simulation-text');
@@ -1610,8 +1635,31 @@
             if (window.localStorage) {
                 localStorage.setItem('simulationRunning', 'true');
             }
-        }   
-          
+        }
+        
+        // Stop the simulation
+        function stopSimulation() {
+            if (!window.simulationRunning) return;
+            
+            window.simulationRunning = false;
+            clearInterval(simulationInterval);
+            
+            // Update button text
+            const simulationButton = document.getElementById('simulation-button');
+            const simulationText = document.getElementById('simulation-text');
+            simulationText.textContent = getText('startSimulation');
+            simulationButton.classList.remove('bg-red-500');
+            simulationButton.classList.add('bg-primary');
+            
+            // Remove all simulation participants
+            simulationParticipants.forEach(participant => {
+                const index = window.appData.participants.findIndex(p => p.id === participant.id);
+                if (index !== -1) {
+                    window.appData.participants.splice(index, 1);
+                }
+            });
+            simulationParticipants = [];
+            
             // Reform triangles
             formTriangles();
             
@@ -1659,6 +1707,19 @@
             // Form triangles
             formTriangles();
         }
+        
+        // Check if simulation was previously running
+        function checkSimulationStatus() {
+            if (window.localStorage) {
+                const wasRunning = localStorage.getItem('simulationRunning') === 'true';
+                if (wasRunning) {
+                    startSimulation();
+                }
+            }
+        }
+        
+        // Initialize simulation status on page load
+        checkSimulationStatus();
     </script>
 </body>
 </html>
