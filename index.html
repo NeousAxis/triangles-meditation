@@ -1021,105 +1021,136 @@
         }
         
         // Join the meditation network
-        async function joinNetwork() {
-            const userName = document.getElementById('user-name').value;
-            const continent = document.getElementById('user-continent').value;
-            const country = document.getElementById('user-country').value;
-            const city = document.getElementById('user-city').value;
-            
-            // Validate inputs
-            if (!userName) {
-                alert(getText('enterName'));
-                return;
-            }
-            
-            if (!continent) {
-                alert(getText('selectContinent'));
-                return;
-            }
-            
-            if (!country) {
-                alert(getText('selectCountry'));
-                return;
-            }
-            
-            if (!city) {
-                alert(getText('enterCity'));
-                return;
-            }
-            
-            // Show loading state
-            const joinButton = document.getElementById('join-network');
-            const joinText = document.getElementById('join-text');
-            const originalText = joinText.textContent;
-            
-            joinButton.disabled = true;
-            joinText.innerHTML = `<div class="loading-spinner"></div> ${originalText}`;
-            
-            try {
-                // Get coordinates for the city
-                const coordinates = await getCityCoordinates(city, country);
-                
-                // Générer un ID unique
-                const userId = 'user-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-                
-                // Create user profile
-                const userProfile = {
-                    id: userId,
-                    name: userName,
-                    continent: continent,
-                    country: country,
-                    city: city,
-                    coordinates: coordinates,
-                    language: window.appData.currentLanguage,
-                    joinedAt: Date.now(),
-                    expiresAt: Date.now() + (20 * 60 * 1000) // 20 minutes
-                };
-                
-                // Sauvegarder le profil localement
-                window.appData.userProfile = userProfile;
-                
-                // Save to localStorage if available
-                if (window.localStorage) {
-                    localStorage.setItem('userProfile', JSON.stringify(userProfile));
-                }
-                
-                // IMPORTANT: Enregistrer dans Firebase
-                await database.ref('participants/' + userId).set(userProfile);
-                
-                // Configurer la suppression automatique à la déconnexion
-                database.ref('participants/' + userId).onDisconnect().remove();
-                
-                // Hide registration form and show status panel
-                document.getElementById('registration-form').classList.add('hidden');
-                document.getElementById('status-panel').classList.remove('hidden');
-                
-                // Update participant info
-                document.getElementById('participant-info').textContent = 
-                    `${getText('yourCoordinates')}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}]`;
-                
-                // Update triangle status
-                document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
-                
-                // Update time remaining message
-                document.getElementById('time-remaining').textContent = getText('timeRemaining');
-                
-                // Start the countdown timer for the position
-                startPositionTimer();
-                
-                // Démarrer la mise à jour du temps d'expiration
-                startExpirationUpdater(userId);
-                
-            } catch (error) {
-                console.error("Error joining network:", error);
-                
-                joinButton.disabled = false;
-                joinText.textContent = originalText;
-                
-                alert(getText('locationError'));
-            }
+        // Join the meditation network
+async function joinNetwork() {
+    console.log("1. Début de joinNetwork");
+    const userName = document.getElementById('user-name').value;
+    const continent = document.getElementById('user-continent').value;
+    const country = document.getElementById('user-country').value;
+    const city = document.getElementById('user-city').value;
+    
+    // Validate inputs
+    if (!userName) {
+        alert(getText('enterName'));
+        return;
+    }
+    
+    if (!continent) {
+        alert(getText('selectContinent'));
+        return;
+    }
+    
+    if (!country) {
+        alert(getText('selectCountry'));
+        return;
+    }
+    
+    if (!city) {
+        alert(getText('enterCity'));
+        return;
+    }
+    
+    // Show loading state
+    const joinButton = document.getElementById('join-network');
+    const joinText = document.getElementById('join-text');
+    const originalText = joinText.textContent;
+    
+    joinButton.disabled = true;
+    joinText.innerHTML = `<div class="loading-spinner"></div> ${originalText}`;
+    
+    try {
+        console.log("2. Obtention des coordonnées");
+        // Get coordinates for the city
+        const coordinates = await getCityCoordinates(city, country);
+        console.log("3. Coordonnées obtenues:", coordinates);
+        
+        // Générer un ID unique
+        const userId = 'user-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        
+        // Create user profile
+        const userProfile = {
+            id: userId,
+            name: userName,
+            continent: continent,
+            country: country,
+            city: city,
+            coordinates: coordinates,
+            language: window.appData.currentLanguage,
+            joinedAt: Date.now(),
+            expiresAt: Date.now() + (20 * 60 * 1000) // 20 minutes
+        };
+        console.log("4. Profil utilisateur créé");
+        
+        // Sauvegarder le profil localement AVANT Firebase
+        window.appData.userProfile = userProfile;
+        
+        // Ajouter l'utilisateur directement aux participants locaux
+        window.appData.participants.push(userProfile);
+        
+        // Save to localStorage if available
+        if (window.localStorage) {
+            localStorage.setItem('userProfile', JSON.stringify(userProfile));
+            console.log("5. Profil sauvegardé dans localStorage");
         }
         
+        // IMPORTANT: Former des triangles AVANT la synchronisation Firebase
+        formTriangles();
+        console.log("6. Triangles formés localement");
+        
+        // Hide registration form and show status panel
+        document.getElementById('registration-form').classList.add('hidden');
+        document.getElementById('status-panel').classList.remove('hidden');
+        
+        // Update participant info
+        document.getElementById('participant-info').textContent = 
+            `${getText('yourCoordinates')}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}]`;
+        
+        // Update triangle status
+        document.getElementById('triangle-status').textContent = getText('waitingForTriangle');
+        
+        // Update time remaining message
+        document.getElementById('time-remaining').textContent = getText('timeRemaining');
+        
+        // Start the countdown timer for the position
+        startPositionTimer();
+        console.log("7. Interface utilisateur mise à jour");
+        
+        // ESSAYER de synchroniser avec Firebase, mais ne pas bloquer l'application si ça échoue
+        console.log("8. Tentative de synchronisation Firebase (non bloquante)");
+        try {
+            // Définir un timeout pour l'opération Firebase (10 secondes max)
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Firebase timeout")), 10000)
+            );
+            
+            // Exécuter les opérations Firebase avec timeout
+            await Promise.race([
+                (async () => {
+                    await database.ref('participants/' + userId).set(userProfile);
+                    console.log("9. Données envoyées à Firebase avec succès");
+                    database.ref('participants/' + userId).onDisconnect().remove();
+                    console.log("10. Suppression automatique configurée");
+                    // Démarrer la mise à jour du temps d'expiration
+                    startExpirationUpdater(userId);
+                })(),
+                timeoutPromise
+            ]);
+        } catch (firebaseError) {
+            console.warn("Erreur Firebase (l'application continue à fonctionner localement):", firebaseError);
+            // Ne pas bloquer l'application - continuer avec les données locales
+        }
+        
+        console.log("11. Fonction joinNetwork terminée avec succès");
+        
+    } catch (error) {
+        console.error("Erreur critique lors de la connexion:", error);
+        
+        joinButton.disabled = false;
+        joinText.textContent = originalText;
+        
+        alert(getText('locationError'));
+    }
+}
         // Leave the network
         function leaveNetwork() {
             if (!window.appData.userProfile) return;
